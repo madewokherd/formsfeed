@@ -2,14 +2,14 @@
 
 namespace FormsFeed.Cache
 {
-    [Serializable]
-    internal class FeedBasicInfo
+    internal struct FeedBasicInfo
     {
-        public Uri uri;             // URL of the feed
+        public string uri;          // URL of the feed
+        public DateTime lastchecked;// timestamp of last successful check
         public DateTime timestamp;  // http last modified time
+        public DateTime expiration; // earliest we've been asked to recheck
         public string etag;         // http last retrieved string
         public bool unread;         // true if the feed contains items not marked as read
         public bool autofetch;      // if true, fetching "all" feeds will include this one
-        public string dbfilename;   // location of a database file containing more detailed information
     }
 }

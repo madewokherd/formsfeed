@@ -55,6 +55,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cache.cs" />
+    <Compile Include="DetailedInfo.cs" />
     <Compile Include="FeedBasicInfo.cs" />
     <Compile Include="Serializers.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

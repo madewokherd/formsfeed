@@ -9,7 +9,7 @@ namespace FormsFeed.Cache
         public DateTime timestamp;  // http last modified time
         public DateTime expiration; // earliest we've been asked to recheck
         public string etag;         // http last retrieved string
-        public bool unread;         // true if the feed contains items not marked as read
         public bool autofetch;      // if true, fetching "all" feeds will include this one
+        public string title;
     }
 }

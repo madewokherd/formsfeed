@@ -69,6 +69,8 @@ namespace FormsFeed.Cache
             FeedBasicInfo info = GetBasicInfoSafe(uri);
             if (!force && DateTime.Compare(DateTime.UtcNow, info.expiration) < 0)
                 return false;
+            DateTime previous_check = info.lastchecked;
+            info.lastchecked = DateTime.UtcNow;
             WebRequest request = WebRequest.Create(uri);
             if (request is HttpWebRequest)
             {
@@ -78,7 +80,6 @@ namespace FormsFeed.Cache
                 if (info.etag != null && info.etag != "")
                     headers.Add("If-None-Match", info.etag);
             }
-            info.lastchecked = DateTime.UtcNow;
             WebResponse response;
             try
             {
@@ -156,7 +157,7 @@ namespace FormsFeed.Cache
                 {
                     DateTime expiration = DateTime.UtcNow;
                     bool delayed = false;
-                    int i=0;
+                    int i = 0;
                     while (channel.SkipDays.Contains(expiration.DayOfWeek))
                     {
                         expiration = new DateTime(expiration.Year, expiration.Month, expiration.Day, 0, 0, 0, DateTimeKind.Utc);
@@ -194,8 +195,131 @@ namespace FormsFeed.Cache
                 }
             }
 
+            LinkedList<DetailedInfo> items = new LinkedList<DetailedInfo>();
+
+            if (feed.Resource is AtomFeed)
+            {
+                foreach (var item in ((AtomFeed)feed.Resource).Entries)
+                {
+                    DetailedInfo iteminfo = new DetailedInfo();
+                    iteminfo.feed_uri = info.uri;
+                    iteminfo.id = item.Id.Uri.ToString();
+                    if (detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
+                        continue;
+                    iteminfo.contents = new List<Tuple<string, string>>();
+                    iteminfo.title = item.Title.Content; // FIXME: remove any html/xml
+                    iteminfo.author = feed_detailed_info.author;
+                    iteminfo.timestamp = item.PublishedOn;
+                    iteminfo.argotic_resource = item;
+
+                    FillCategories(iteminfo, (new GenericSyndicationItem(item)).Categories);
+
+                    FillAuthors(iteminfo, item.Authors);
+                    FillContributors(iteminfo, item.Contributors);
+                    FillLinks(iteminfo, item.Links);
+                    if (item.Content != null)
+                    {
+                        if (item.Content.Source != null)
+                            iteminfo.contents.Add(Tuple.Create("content-uri", item.Content.Source.ToString()));
+                        else
+                            iteminfo.contents.Add(Tuple.Create("content", item.Content.Content)); // FIXME: escape text?
+                    }
+                    if (item.Summary != null)
+                    {
+                        AddAtomText(iteminfo, "summary", item.Summary);
+                    }
+                    items.AddLast(iteminfo);
+                }
+            }
+            else if (feed.Resource is RssFeed)
+            {
+                foreach (var item in ((RssFeed)feed.Resource).Channel.Items)
+                {
+                    DetailedInfo iteminfo = new DetailedInfo();
+                    iteminfo.feed_uri = info.uri;
+                    if (item.Guid != null)
+                        iteminfo.id = item.Guid.Value.ToString();
+                    else if (item.Link != null)
+                        iteminfo.id = item.Link.ToString();
+                    else
+                        iteminfo.id = item.Title;
+                    if (detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
+                        continue;
+                    iteminfo.contents = new List<Tuple<string, string>>();
+                    iteminfo.title = item.Title;
+                    iteminfo.author = feed_detailed_info.author;
+                    iteminfo.timestamp = item.PublicationDate;
+                    iteminfo.argotic_resource = item;
+
+                    FillCategories(iteminfo, (new GenericSyndicationItem(item)).Categories);
+
+                    if (item.Author != null)
+                    {
+                        iteminfo.author = item.Author;
+                        iteminfo.contents.Add(Tuple.Create("author", item.Author));
+                    }
+                    if (item.Comments != null)
+                        iteminfo.contents.Add(Tuple.Create("comments-uri", item.Comments.ToString()));
+                    if (item.Description != null)
+                        iteminfo.contents.Add(Tuple.Create("description", item.Description));
+                    foreach (var enclosure in item.Enclosures)
+                    {
+                        iteminfo.contents.Add(Tuple.Create("enclosure", enclosure.Url.ToString()));
+                    }
+                    if (item.Link != null)
+                        iteminfo.contents.Add(Tuple.Create("content-uri", item.Link.ToString()));
+                    items.AddLast(iteminfo);
+                }
+            }
+            else
+            {
+                foreach (var item in feed.Items)
+                {
+                    DetailedInfo iteminfo = new DetailedInfo();
+                    iteminfo.feed_uri = info.uri;
+                    iteminfo.id = item.Title;
+                    if (detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
+                        continue;
+                    iteminfo.contents = new List<Tuple<string, string>>();
+                    iteminfo.title = item.Title;
+                    iteminfo.author = feed_detailed_info.author;
+                    iteminfo.timestamp = item.PublishedOn;
+                    iteminfo.argotic_resource = item;
+
+                    FillCategories(iteminfo, item.Categories);
+                    if (item.Summary != null)
+                        iteminfo.contents.Add(Tuple.Create("summary", item.Summary));
+                    items.AddLast(iteminfo);
+                }
+            }
+
+            //FIXME: Tag all new items as unread, apply any applicable filters?
+
+            LinkedListNode<DetailedInfo> link = items.First;
+            while (link != null) {
+                DetailedInfo iteminfo = link.Value;
+                if (iteminfo.timestamp.CompareTo(previous_check) < 0)
+                    iteminfo.timestamp = previous_check;
+                else if (iteminfo.timestamp.CompareTo(DateTime.UtcNow) > 0)
+                    iteminfo.timestamp = DateTime.UtcNow;
+
+                detailed_infos[Tuple.Create(iteminfo.feed_uri, iteminfo.id)] = iteminfo;
+
+                link = link.Next;
+            }
+
+            detailed_infos[Tuple.Create(feed_detailed_info.feed_uri, "")] = feed_detailed_info;
+
             feed_infos[info.uri] = info;
             return true;
+        }
+
+        internal static string text_to_html(string text)
+        {
+            string content = text;
+            content = content.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+            content = string.Format("<pre>{0}</pre>", content);
+            return content;
         }
 
         private void AddAtomText(DetailedInfo feed_detailed_info, string key, AtomTextConstruct text)
@@ -203,8 +327,7 @@ namespace FormsFeed.Cache
             string content = text.Content;
             if (text.TextType == AtomTextConstructType.Text)
             {
-                content = content.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
-                content = string.Format("<pre>{0}</pre>", content);
+                content = text_to_html(content);
             }
             feed_detailed_info.contents.Add(Tuple.Create(key, content));
         }

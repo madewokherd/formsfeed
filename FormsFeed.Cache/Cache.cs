@@ -88,7 +88,23 @@ namespace FormsFeed.Cache
             catch (WebException e)
             {
                 if (e.Response is HttpWebResponse && ((HttpWebResponse)e.Response).StatusCode == HttpStatusCode.NotModified)
+                {
+                    HttpWebResponse httpresponse = (HttpWebResponse)e.Response;
+                    info.expiration = DateTime.MinValue;
+                    var headers = httpresponse.Headers;
+                    for (int i = 0; i < headers.Count; i++)
+                    {
+                        string key = headers.GetKey(i);
+                        if (key == "Last-Modified" && DateTime.TryParse(headers.Get(i), out info.timestamp))
+                            info.timestamp = info.timestamp.ToUniversalTime();
+                        else if (key == "ETag")
+                            info.etag = headers.Get(i);
+                        else if (key == "Expires" && DateTime.TryParse(headers.Get(i), out info.expiration))
+                            info.expiration = info.expiration.ToUniversalTime();
+                    }
+                    feed_infos[info.uri] = info;
                     return false;
+                }
                 throw;
             }
             if (response is HttpWebResponse)
@@ -101,12 +117,12 @@ namespace FormsFeed.Cache
                 for (int i = 0; i < headers.Count; i++)
                 {
                     string key = headers.GetKey(i);
-                    if (key == "Last-Modified")
-                        info.timestamp = DateTime.Parse(headers.Get(i)).ToUniversalTime();
+                    if (key == "Last-Modified" && DateTime.TryParse(headers.Get(i), out info.timestamp))
+                        info.timestamp = info.timestamp.ToUniversalTime();
                     else if (key == "ETag")
                         info.etag = headers.Get(i);
-                    else if (key == "Expires")
-                        info.expiration = DateTime.Parse(headers.Get(i)).ToUniversalTime();
+                    else if (key == "Expires" && DateTime.TryParse(headers.Get(i), out info.expiration))
+                        info.expiration = info.expiration.ToUniversalTime();
                 }
             }
 
@@ -298,9 +314,9 @@ namespace FormsFeed.Cache
             LinkedListNode<DetailedInfo> link = items.First;
             while (link != null) {
                 DetailedInfo iteminfo = link.Value;
-                if (iteminfo.timestamp.CompareTo(previous_check) < 0)
+                if (DateTime.Compare(iteminfo.timestamp, previous_check) < 0)
                     iteminfo.timestamp = previous_check;
-                else if (iteminfo.timestamp.CompareTo(DateTime.UtcNow) > 0)
+                else if (DateTime.Compare(iteminfo.timestamp, DateTime.UtcNow) > 0)
                     iteminfo.timestamp = DateTime.UtcNow;
 
                 detailed_infos[Tuple.Create(iteminfo.feed_uri, iteminfo.id)] = iteminfo;
@@ -371,6 +387,47 @@ namespace FormsFeed.Cache
         public bool Update(string uri)
         {
             return Update(uri, false);
+        }
+
+        public bool TryGetFeedBasicInfo(string uri, out FeedBasicInfo info)
+        {
+            return feed_infos.TryGetValue(uri, out info);
+        }
+
+        public IEnumerable<DetailedInfo> GetFeedItems(string uri)
+        {
+            List<DetailedInfo> result = new List<DetailedInfo>();
+
+            foreach (var kvp in detailed_infos.EnumerateFrom(Tuple.Create(uri, "")))
+            {
+                DetailedInfo info;
+                if (kvp.Key.Item1 != uri)
+                    break;
+                if (kvp.Key.Item2 == "") // Information for entire feed
+                    continue;
+                info = kvp.Value;
+                info.feed_uri = uri;
+                info.id = kvp.Key.Item2;
+                result.Add(info);
+            }
+
+            return result;
+        }
+
+        public bool TryGetDetailedInfo(string uri, string id, out DetailedInfo result)
+        {
+            if (detailed_infos.TryGetValue(Tuple.Create(uri, id), out result))
+            {
+                result.feed_uri = uri;
+                result.id = id;
+                return true;
+            }
+            return false;
+        }
+
+        public bool TryGetDetailedInfo(string uri, out DetailedInfo result)
+        {
+            return TryGetDetailedInfo(uri, "", out result);
         }
     }
 }

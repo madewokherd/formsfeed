@@ -2,7 +2,7 @@
 
 namespace FormsFeed.Cache
 {
-    internal struct FeedBasicInfo
+    public struct FeedBasicInfo
     {
         public string uri;          // URL of the feed
         public DateTime lastchecked;// timestamp of last successful check

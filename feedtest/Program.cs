@@ -57,7 +57,7 @@ feedtest show-item url [id]
                     if (cache.Update(args[i], force))
                     {
                         if (DateTime.Compare(info.expiration, DateTime.UtcNow) <= 0)
-                            Console.WriteLine("Updated. {0}", info.expiration.ToLocalTime());
+                            Console.WriteLine("Updated.", info.expiration.ToLocalTime());
                         else
                             Console.WriteLine("Updated. Will not check again until {0}", info.expiration.ToLocalTime());
                     }

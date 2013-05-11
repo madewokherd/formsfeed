@@ -22,7 +22,25 @@ feedtest list-items [-r] url
 
 feedtest show-item url [id]
     Show detailed informatino for the specified item id.
+
+feedtest tag-item tag url id
+    Add the given item to the given tag.
+
+feedtest untag-item tag url id
+    Remove the given item from the given tag.
+
+feedtest show-tag tag
+    Show the contents of the given tag.
 ");
+        }
+
+        static void WriteDetailedInfo(DetailedInfo info)
+        {
+            Console.WriteLine("Title: {0}", info.title);
+            Console.WriteLine("Author: {0}", info.author);
+            Console.WriteLine("Date: {0}", info.timestamp);
+            foreach (var item in info.contents)
+                Console.WriteLine("{0} {1}", item.Item1, item.Item2);
         }
 
         static void Main(string[] args)
@@ -115,15 +133,78 @@ feedtest show-item url [id]
 
                 if (cache.TryGetDetailedInfo(uri, id, out info))
                 {
-                    Console.WriteLine("Title: {0}", info.title);
-                    Console.WriteLine("Author: {0}", info.author);
-                    Console.WriteLine("Date: {0}", info.timestamp);
-                    foreach (var item in info.contents)
-                        Console.WriteLine("{0} {1}", item.Item1, item.Item2);
+                    WriteDetailedInfo(info);
                 }
                 else
                 {
                     Console.WriteLine("No such item");
+                }
+            }
+            else if (command == "tag-item")
+            {
+                string tagname, uri, id;
+
+                if (args.Length != 4)
+                {
+                    Usage();
+                    return;
+                }
+
+                tagname = args[1];
+                uri = args[2];
+                id = args[3];
+
+                Tag tag = cache.GetTag(tagname);
+
+                DetailedInfo info;
+
+                if (cache.TryGetDetailedInfo(uri, id, out info))
+                {
+                    tag.Add(info);
+                }
+                else
+                {
+                    Console.WriteLine("No such item");
+                }
+            }
+            else if (command == "untag-item")
+            {
+                string tagname, uri, id;
+
+                if (args.Length != 4)
+                {
+                    Usage();
+                    return;
+                }
+
+                tagname = args[1];
+                uri = args[2];
+                id = args[3];
+
+                Tag tag = cache.GetTag(tagname);
+
+                if (!tag.Remove(Tuple.Create(uri, id)))
+                {
+                    Console.WriteLine("No such item in tag");
+                }
+            }
+            else if (command == "show-tag")
+            {
+                string tagname;
+
+                if (args.Length != 2)
+                {
+                    Usage();
+                    return;
+                }
+
+                tagname = args[1];
+
+                Tag tag = cache.GetTag(tagname);
+
+                foreach (var info in tag.GetSummaries())
+                {
+                    WriteDetailedInfo(info);
                 }
             }
             else

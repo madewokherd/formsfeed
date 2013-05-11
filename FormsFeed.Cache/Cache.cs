@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Net;
 using CSharpTest.Net.Collections;
 using CSharpTest.Net.Serialization;
@@ -10,10 +11,11 @@ namespace FormsFeed.Cache
 {
     public class Cache : IDisposable
     {
-        private string basepath;
+        internal string basepath;
         private FileStream lockfile;
         internal BPlusTree<string, FeedBasicInfo> feed_infos;
         internal BPlusTree<Tuple<string, string>, DetailedInfo> detailed_infos;
+        private ConcurrentDictionary<string, Tag> loaded_tags;
 
         public Cache(string path)
         {
@@ -41,6 +43,8 @@ namespace FormsFeed.Cache
                 options.KeyComparer = s;
                 this.detailed_infos = new BPlusTree<Tuple<string, string>, DetailedInfo>(options);
             }
+
+            loaded_tags = new ConcurrentDictionary<string, Tag>();
         }
 
         public void Dispose()
@@ -451,7 +455,13 @@ namespace FormsFeed.Cache
 
         public Tag GetTag(string name)
         {
-            throw new NotImplementedException();
+            Tag result;
+            if (loaded_tags.TryGetValue(name, out result))
+                return result;
+            loaded_tags.TryAdd(name, new Tag(this, name));
+            result = loaded_tags[name];
+            result.Load();
+            return result;
         }
     }
 }

@@ -262,7 +262,7 @@ namespace FormsFeed.Cache
                     if (item.Guid != null)
                         iteminfo.id = item.Guid.Value.ToString();
                     else if (item.Link != null)
-                        iteminfo.id = item.Link.ToString();
+                        iteminfo.id = item.Link.ToString() + ":" + item.Title;
                     else
                         iteminfo.id = item.Title;
                     if (detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))

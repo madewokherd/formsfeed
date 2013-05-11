@@ -81,6 +81,14 @@ namespace FormsFeed.Cache
         public int Compare(Tuple<string, string> x, Tuple<string, string> y)
         {
             int c;
+            if (y == null)
+            {
+                if (x == null)
+                    return 0;
+                return 1;
+            }
+            if (x == null)
+                return -1;
             c = string.Compare(x.Item1, y.Item1, StringComparison.Ordinal);
             if (c == 0)
                 c = string.Compare(x.Item2, y.Item2, StringComparison.Ordinal);

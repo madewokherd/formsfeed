@@ -12,7 +12,7 @@ namespace feedtest
         {
             Console.Write(@"usage: feedtest <command> [<args>]
 
-feedtest update [-f] url
+feedtest update [-f] [url]
     Refresh items from the specified url.
     -f to refresh even if the next update timestamp is in the future.
 
@@ -35,11 +35,17 @@ feedtest show-tag tag
 feedtest subscribe url
     Subscribe to the given feed url.
 
+feedtest unsubscribe url
+    Remove subscription to the given feed url.
+
 feedtest import-opml filename
     Subscribe to the feeds listed in filename.
 
 feedtest list-subscriptions
     List the current subscriptions.
+
+feedtest update
+    Update all subscriptions for which we have outdated information.
 ");
         }
 
@@ -97,8 +103,7 @@ feedtest list-subscriptions
                     }
                     return;
                 }
-                // No uri specified.
-                Usage();
+                cache.UpdateAll(force);
             }
             else if (command == "list-items")
             {
@@ -229,6 +234,20 @@ feedtest list-subscriptions
                 feed_uri = args[1];
 
                 cache.Subscribe(feed_uri);
+            }
+            else if (command == "unsubscribe")
+            {
+                string feed_uri;
+
+                if (args.Length != 2)
+                {
+                    Usage();
+                    return;
+                }
+
+                feed_uri = args[1];
+
+                cache.SetSubscribed(feed_uri, false);
             }
             else if (command == "import-opml")
             {

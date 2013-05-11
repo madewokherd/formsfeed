@@ -244,6 +244,12 @@ namespace FormsFeed.Cache
                     {
                         AddAtomText(iteminfo, "summary", item.Summary);
                     }
+
+                    if (DateTime.Compare(iteminfo.timestamp, previous_check) < 0)
+                        iteminfo.timestamp = previous_check;
+                    else if (DateTime.Compare(iteminfo.timestamp, DateTime.UtcNow) > 0)
+                        iteminfo.timestamp = DateTime.UtcNow;
+
                     items.AddLast(iteminfo);
                 }
             }
@@ -284,6 +290,12 @@ namespace FormsFeed.Cache
                     }
                     if (item.Link != null)
                         iteminfo.contents.Add(Tuple.Create("content-uri", item.Link.ToString()));
+
+                    if (DateTime.Compare(iteminfo.timestamp, previous_check) < 0)
+                        iteminfo.timestamp = previous_check;
+                    else if (DateTime.Compare(iteminfo.timestamp, DateTime.UtcNow) > 0)
+                        iteminfo.timestamp = DateTime.UtcNow;
+
                     items.AddLast(iteminfo);
                 }
             }
@@ -305,29 +317,36 @@ namespace FormsFeed.Cache
                     FillCategories(iteminfo, item.Categories);
                     if (item.Summary != null)
                         iteminfo.contents.Add(Tuple.Create("summary", item.Summary));
+
+                    if (DateTime.Compare(iteminfo.timestamp, previous_check) < 0)
+                        iteminfo.timestamp = previous_check;
+                    else if (DateTime.Compare(iteminfo.timestamp, DateTime.UtcNow) > 0)
+                        iteminfo.timestamp = DateTime.UtcNow;
+
                     items.AddLast(iteminfo);
                 }
             }
 
-            //FIXME: Tag all new items as unread, apply any applicable filters?
+            //FIXME: Tag all new items as "new"
 
-            LinkedListNode<DetailedInfo> link = items.First;
-            while (link != null) {
-                DetailedInfo iteminfo = link.Value;
-                if (DateTime.Compare(iteminfo.timestamp, previous_check) < 0)
-                    iteminfo.timestamp = previous_check;
-                else if (DateTime.Compare(iteminfo.timestamp, DateTime.UtcNow) > 0)
-                    iteminfo.timestamp = DateTime.UtcNow;
-
-                detailed_infos[Tuple.Create(iteminfo.feed_uri, iteminfo.id)] = iteminfo;
-
-                link = link.Next;
-            }
+            detailed_infos.AddRange(GetInfosAsKvp(items));
 
             detailed_infos[Tuple.Create(feed_detailed_info.feed_uri, "")] = feed_detailed_info;
 
             feed_infos[info.uri] = info;
+
+            //FIXME: Tag all new items as unread, apply any applicable filters?
+            
             return true;
+        }
+
+        private IEnumerable<KeyValuePair<Tuple<string, string>, DetailedInfo>> GetInfosAsKvp(IEnumerable<DetailedInfo> infos)
+        {
+            foreach (DetailedInfo info in infos)
+            {
+                yield return new KeyValuePair<Tuple<string, string>, DetailedInfo>(
+                    Tuple.Create(info.feed_uri, info.id), info);
+            }
         }
 
         internal static string text_to_html(string text)

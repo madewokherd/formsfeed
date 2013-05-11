@@ -463,5 +463,38 @@ namespace FormsFeed.Cache
             result.Load();
             return result;
         }
+
+        public void Subscribe(string feed_uri)
+        {
+            FeedBasicInfo info = GetBasicInfoSafe(feed_uri);
+            if (!info.autofetch)
+            {
+                info.autofetch = true;
+                feed_infos[feed_uri] = info;
+            }
+        }
+
+        public void ImportOpml(string filename)
+        {
+            FileStream f = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+            OpmlDocument doc = new OpmlDocument();
+            doc.Load(f);
+            foreach (var outline in doc.Outlines)
+            {
+                string feed_uri = outline.Attributes["xmlUrl"];
+                Subscribe(feed_uri);
+            }
+        }
+
+        public IEnumerable<string> GetSubscriptions()
+        {
+            List<string> result = new List<string>();
+            foreach (var kvp in feed_infos)
+            {
+                if (kvp.Value.autofetch)
+                    result.Add(kvp.Key);
+            }
+            return result;
+        }
     }
 }

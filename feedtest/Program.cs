@@ -31,6 +31,15 @@ feedtest untag-item tag url id
 
 feedtest show-tag tag
     Show the contents of the given tag.
+
+feedtest subscribe url
+    Subscribe to the given feed url.
+
+feedtest import-opml filename
+    Subscribe to the feeds listed in filename.
+
+feedtest list-subscriptions
+    List the current subscriptions.
 ");
         }
 
@@ -205,6 +214,41 @@ feedtest show-tag tag
                 foreach (var info in tag.GetSummaries())
                 {
                     WriteDetailedInfo(info);
+                }
+            }
+            else if (command == "subscribe")
+            {
+                string feed_uri;
+
+                if (args.Length != 2)
+                {
+                    Usage();
+                    return;
+                }
+
+                feed_uri = args[1];
+
+                cache.Subscribe(feed_uri);
+            }
+            else if (command == "import-opml")
+            {
+                string filename;
+
+                if (args.Length != 2)
+                {
+                    Usage();
+                    return;
+                }
+
+                filename = args[1];
+
+                cache.ImportOpml(filename);
+            }
+            else if (command == "list-subscriptions")
+            {
+                foreach (string uri in cache.GetSubscriptions())
+                {
+                    Console.WriteLine(uri);
                 }
             }
             else

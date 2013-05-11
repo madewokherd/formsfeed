@@ -448,5 +448,10 @@ namespace FormsFeed.Cache
         {
             return TryGetDetailedInfo(uri, "", out result);
         }
+
+        public Tag GetTag(string name)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

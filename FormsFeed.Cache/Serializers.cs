@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using CSharpTest.Net.Serialization;
 
-namespace FormsFeed.Cache
+namespace FormsFeed
 {
     internal class Serializers :
         ISerializer<FeedBasicInfo>,

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace FormsFeed.Cache
+namespace FormsFeed
 {
     public class Cache : IDisposable
     {
@@ -577,6 +577,7 @@ namespace FormsFeed.Cache
                 }
                 catch (Exception e)
                 {
+                    Console.WriteLine(e);
                 }
             });
         }

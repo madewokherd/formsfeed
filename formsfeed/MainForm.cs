@@ -7,13 +7,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using FormsFeed;
 
-namespace formsfeed
+namespace FormsFeed.WinForms
 {
-    public partial class Form1 : Form
+    public partial class MainForm : Form
     {
-        public Form1()
+        public MainForm(Cache cache)
         {
+
             InitializeComponent();
         }
     }

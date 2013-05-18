@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using CSharpTest.Net.Serialization;
 
-namespace FormsFeed.Cache
+namespace FormsFeed
 {
     public class Tag
     {

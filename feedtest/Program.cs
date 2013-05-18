@@ -2,7 +2,7 @@
 using System.Threading;
 using Argotic.Common;
 using Argotic.Syndication;
-using FormsFeed.Cache;
+using FormsFeed;
 
 namespace feedtest
 {

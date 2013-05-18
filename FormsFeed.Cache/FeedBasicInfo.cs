@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace FormsFeed.Cache
+namespace FormsFeed
 {
     public struct FeedBasicInfo
     {

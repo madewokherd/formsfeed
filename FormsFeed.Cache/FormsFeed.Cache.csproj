@@ -7,8 +7,8 @@
     <ProjectGuid>{213DDB91-096D-4265-B4AD-6ECA9FAE7A8F}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FormsFeed.Cache</RootNamespace>
-    <AssemblyName>FormsFeed.Cache</AssemblyName>
+    <RootNamespace>FormsFeed</RootNamespace>
+    <AssemblyName>FormsFeed</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>

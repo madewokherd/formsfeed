@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Argotic.Syndication;
 
-namespace FormsFeed.Cache
+namespace FormsFeed
 {
     public struct DetailedInfo
     {

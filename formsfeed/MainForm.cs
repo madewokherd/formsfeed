@@ -57,6 +57,7 @@ namespace FormsFeed.WinForms
                     break;
                 case View.SingleItem:
                     webbrowser.Hide();
+                    itemtoolstrip.Hide();
                     singleItemToolStripMenuItem.CheckState = CheckState.Unchecked;
                     break;
             }
@@ -69,6 +70,7 @@ namespace FormsFeed.WinForms
                     break;
                 case View.SingleItem:
                     webbrowser.Show();
+                    itemtoolstrip.Show();
                     singleItemToolStripMenuItem.CheckState = CheckState.Checked;
                     break;
             }
@@ -211,6 +213,11 @@ namespace FormsFeed.WinForms
         private void itemsview_SelectedIndexChanged(object sender, EventArgs e)
         {
             MaybeUpdateWebbrowser();
+        }
+
+        private void allitemsbutton_Click(object sender, EventArgs e)
+        {
+            SetView(View.List);
         }
     }
 }

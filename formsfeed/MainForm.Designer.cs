@@ -42,8 +42,11 @@
             this.authorcolumn = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.datecolumn = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.webbrowser = new System.Windows.Forms.WebBrowser();
+            this.itemtoolstrip = new System.Windows.Forms.ToolStrip();
+            this.allitemsbutton = new System.Windows.Forms.ToolStripButton();
             this.menuStrip1.SuspendLayout();
             this.statusbar.SuspendLayout();
+            this.itemtoolstrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // menuStrip1
@@ -171,11 +174,32 @@
             this.webbrowser.Visible = false;
             this.webbrowser.VisibleChanged += new System.EventHandler(this.webbrowser_VisibleChanged);
             // 
+            // itemtoolstrip
+            // 
+            this.itemtoolstrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.allitemsbutton});
+            this.itemtoolstrip.Location = new System.Drawing.Point(0, 24);
+            this.itemtoolstrip.Name = "itemtoolstrip";
+            this.itemtoolstrip.Size = new System.Drawing.Size(354, 25);
+            this.itemtoolstrip.TabIndex = 3;
+            this.itemtoolstrip.Text = "toolStrip1";
+            this.itemtoolstrip.Visible = false;
+            // 
+            // allitemsbutton
+            // 
+            this.allitemsbutton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.allitemsbutton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.allitemsbutton.Name = "allitemsbutton";
+            this.allitemsbutton.Size = new System.Drawing.Size(85, 22);
+            this.allitemsbutton.Text = "Show item list";
+            this.allitemsbutton.Click += new System.EventHandler(this.allitemsbutton_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(354, 339);
+            this.Controls.Add(this.itemtoolstrip);
             this.Controls.Add(this.webbrowser);
             this.Controls.Add(this.itemsview);
             this.Controls.Add(this.statusbar);
@@ -188,6 +212,8 @@
             this.menuStrip1.PerformLayout();
             this.statusbar.ResumeLayout(false);
             this.statusbar.PerformLayout();
+            this.itemtoolstrip.ResumeLayout(false);
+            this.itemtoolstrip.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -209,6 +235,8 @@
         private System.Windows.Forms.ToolStripMenuItem listToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem singleItemToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStrip itemtoolstrip;
+        private System.Windows.Forms.ToolStripButton allitemsbutton;
     }
 }
 

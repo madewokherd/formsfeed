@@ -219,5 +219,10 @@ namespace FormsFeed.WinForms
         {
             SetView(View.List);
         }
+
+        private void itemsview_Click(object sender, EventArgs e)
+        {
+            SetView(View.SingleItem);
+        }
     }
 }

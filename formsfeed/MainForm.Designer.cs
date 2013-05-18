@@ -143,6 +143,7 @@
             this.itemsview.UseCompatibleStateImageBehavior = false;
             this.itemsview.View = System.Windows.Forms.View.Details;
             this.itemsview.SelectedIndexChanged += new System.EventHandler(this.itemsview_SelectedIndexChanged);
+            this.itemsview.Click += new System.EventHandler(this.itemsview_Click);
             this.itemsview.Resize += new System.EventHandler(this.itemsview_Resize);
             // 
             // textcolumn

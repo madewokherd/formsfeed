@@ -16,7 +16,9 @@ namespace FormsFeed.WinForms
         public MainForm(Cache cache)
         {
             this.cache = cache;
+            this.current_items = new Dictionary<Tuple<string, string>, ListViewItem>();
             InitializeComponent();
+            this.itemsview.ListViewItemSorter = new ListViewItemSort();
         }
 
         public Cache cache;
@@ -24,6 +26,8 @@ namespace FormsFeed.WinForms
         bool refreshing;
         int refresh_progress;
         int refresh_total;
+
+        private Dictionary<Tuple<string, string>, ListViewItem> current_items;
 
         private delegate void VoidNoArgsDelegate();
         private delegate void VoidIntDelegate(int i);
@@ -43,6 +47,7 @@ namespace FormsFeed.WinForms
         {
             statusbar.Hide();
             refreshing = false;
+            RefreshItemsView();
         }
 
         private void RefreshProgress(int total)
@@ -65,7 +70,7 @@ namespace FormsFeed.WinForms
             BeginInvoke(new VoidNoArgsDelegate(FinishRefresh));
         }
 
-        public void Refresh()
+        public void RefreshItems()
         {
             if (!refreshing)
             {
@@ -73,18 +78,46 @@ namespace FormsFeed.WinForms
                 refresh_progress = -1;
                 refresh_total = 0;
                 Thread refresh_thread = new Thread(new ThreadStart(RefreshThread));
+                refresh_thread.IsBackground = true;
                 refresh_thread.Start();
             }
         }
 
+        public void RefreshItemsView()
+        {
+            Tag tag = cache.GetTag("(unread)");
+            List<DetailedInfo> infos = new List<DetailedInfo>(tag.GetSummaries());
+            itemsview.BeginUpdate();
+            foreach (var info in infos)
+            {
+                var key = Tuple.Create(info.feed_uri, info.id);
+                if (current_items.ContainsKey(key))
+                    continue;
+                ListViewItem item = new ListViewItem();
+                item.Tag = info;
+                item.Text = info.title;
+                item.SubItems.Add(info.author);
+                item.SubItems.Add(info.timestamp.ToString());
+                itemsview.Items.Add(item);
+                current_items[key] = item;
+            }
+            itemsview.EndUpdate();
+        }
+
         private void MainForm_Load(object sender, EventArgs e)
         {
-            Refresh();
+            RefreshItemsView();
+            RefreshItems();
         }
 
         private void refreshToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Refresh();
+            RefreshItems();
+        }
+
+        private void itemsview_Resize(object sender, EventArgs e)
+        {
+            itemsview.Columns[0].Width = itemsview.Width - (itemsview.Columns[1].Width + itemsview.Columns[2].Width + 24);
         }
     }
 }

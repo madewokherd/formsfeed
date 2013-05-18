@@ -297,7 +297,7 @@ namespace FormsFeed
                             continue;
                         iteminfo.contents = new List<Tuple<string, string>>();
                         iteminfo.title = item.Title.Content; // FIXME: remove any html/xml
-                        iteminfo.author = feed_detailed_info.author;
+                        iteminfo.author = feed_detailed_info.title;
                         iteminfo.timestamp = item.PublishedOn;
                         iteminfo.argotic_resource = item;
 
@@ -347,13 +347,13 @@ namespace FormsFeed
                             continue;
                         iteminfo.contents = new List<Tuple<string, string>>();
                         iteminfo.title = item.Title;
-                        iteminfo.author = feed_detailed_info.author;
+                        iteminfo.author = feed_detailed_info.title;
                         iteminfo.timestamp = item.PublicationDate;
                         iteminfo.argotic_resource = item;
 
                         FillCategories(iteminfo, (new GenericSyndicationItem(item)).Categories);
 
-                        if (item.Author != null)
+                        if (item.Author != null && item.Author != string.Empty)
                         {
                             iteminfo.author = item.Author;
                             iteminfo.contents.Add(Tuple.Create("author", item.Author));

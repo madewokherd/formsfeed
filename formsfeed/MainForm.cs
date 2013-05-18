@@ -69,8 +69,8 @@ namespace FormsFeed.WinForms
                     listToolStripMenuItem.CheckState = CheckState.Checked;
                     break;
                 case View.SingleItem:
-                    webbrowser.Show();
                     itemtoolstrip.Show();
+                    webbrowser.Show();
                     singleItemToolStripMenuItem.CheckState = CheckState.Checked;
                     break;
             }

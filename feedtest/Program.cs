@@ -66,7 +66,7 @@ feedtest update
                 return;
             }
 
-            Cache cache = new Cache(".");
+            Cache cache = new Cache();
 
             string command = args[0].ToLowerInvariant();
 

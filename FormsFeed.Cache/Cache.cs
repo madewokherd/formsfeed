@@ -25,6 +25,8 @@ namespace FormsFeed.Cache
         {
             Serializers s = new Serializers();
 
+            Directory.CreateDirectory(path);
+
             this.basepath = path;
             this.lockfile = new FileStream(
                 Path.Combine(basepath, "lock"),
@@ -71,6 +73,21 @@ namespace FormsFeed.Cache
             }
 
             new_tag.Remove(summaries);
+        }
+
+        public Cache()
+            : this(DefaultPath)
+        {
+        }
+
+        public static string DefaultPath
+        {
+            get
+            {
+                return Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "FormsFeed");
+            }
         }
 
         private object GetFeedLock(string uri)

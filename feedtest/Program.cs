@@ -218,6 +218,8 @@ feedtest update
 
                 foreach (var info in tag.GetSummaries())
                 {
+                    Console.WriteLine("Feed url: {0}", info.feed_uri);
+                    Console.WriteLine("Id: {0}", info.id);
                     WriteDetailedInfo(info);
                 }
             }

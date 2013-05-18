@@ -7,6 +7,8 @@ using CSharpTest.Net.Collections;
 using CSharpTest.Net.Serialization;
 using Argotic.Syndication;
 using System.Threading.Tasks;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace FormsFeed.Cache
 {
@@ -48,6 +50,27 @@ namespace FormsFeed.Cache
 
             loaded_tags = new ConcurrentDictionary<string, Tag>();
             feed_locks = new ConcurrentDictionary<string, object>();
+
+            // Process any "new" items we failed to process before
+            Dictionary<string, List<DetailedInfo>> tags = new Dictionary<string, List<DetailedInfo>>();
+            Tag new_tag = GetTag("(new)");
+            List<DetailedInfo> summaries = new List<DetailedInfo>(new_tag.GetSummaries());
+
+            foreach (var summary in summaries)
+            {
+                DetailedInfo info;
+                if (TryGetDetailedInfo(summary.feed_uri, summary.id, out info))
+                {
+                    ProcessItem(info, tags);
+                }
+            }
+
+            foreach (var kvp in tags)
+            {
+                GetTag(kvp.Key).Add(kvp.Value);
+            }
+
+            new_tag.Remove(summaries);
         }
 
         private object GetFeedLock(string uri)
@@ -243,6 +266,8 @@ namespace FormsFeed.Cache
                 }
 
                 LinkedList<DetailedInfo> items = new LinkedList<DetailedInfo>();
+                HashSet<Tuple<string, string>> seen_keys = new HashSet<Tuple<string, string>>();
+                bool duplicate_keys = false;
 
                 if (feed.Resource is AtomFeed)
                 {
@@ -281,6 +306,11 @@ namespace FormsFeed.Cache
                         else if (DateTime.Compare(iteminfo.timestamp, DateTime.UtcNow) > 0)
                             iteminfo.timestamp = DateTime.UtcNow;
 
+                        if (seen_keys.Contains(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
+                            duplicate_keys = true;
+                        else
+                            seen_keys.Add(Tuple.Create(iteminfo.feed_uri, iteminfo.id));
+
                         items.AddLast(iteminfo);
                     }
                 }
@@ -293,7 +323,7 @@ namespace FormsFeed.Cache
                         if (item.Guid != null)
                             iteminfo.id = item.Guid.Value.ToString();
                         else if (item.Link != null)
-                            iteminfo.id = item.Link.ToString() + ":" + item.Title;
+                            iteminfo.id = item.Link.ToString();
                         else
                             iteminfo.id = item.Title;
                         if (detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
@@ -327,6 +357,11 @@ namespace FormsFeed.Cache
                         else if (DateTime.Compare(iteminfo.timestamp, DateTime.UtcNow) > 0)
                             iteminfo.timestamp = DateTime.UtcNow;
 
+                        if (seen_keys.Contains(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
+                            duplicate_keys = true;
+                        else
+                            seen_keys.Add(Tuple.Create(iteminfo.feed_uri, iteminfo.id));
+
                         items.AddLast(iteminfo);
                     }
                 }
@@ -354,15 +389,61 @@ namespace FormsFeed.Cache
                         else if (DateTime.Compare(iteminfo.timestamp, DateTime.UtcNow) > 0)
                             iteminfo.timestamp = DateTime.UtcNow;
 
+                        if (seen_keys.Contains(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
+                            duplicate_keys = true;
+                        else
+                            seen_keys.Add(Tuple.Create(iteminfo.feed_uri, iteminfo.id));
+
                         items.AddLast(iteminfo);
                     }
                 }
 
-                //FIXME: Tag all new items as "new"
+                if (duplicate_keys)
+                {
+                    LinkedList<DetailedInfo> new_items = new LinkedList<DetailedInfo>();
+                    SHA1 sha = SHA1.Create();
+                    UTF8Encoding utf = new UTF8Encoding ();
+                    foreach (var item in items)
+                    {
+                        DetailedInfo new_item = item;
+                        sha.Initialize();
+                        byte[] buffer = utf.GetBytes(item.title);
+                        sha.TransformBlock(buffer, 0, buffer.Length, null, 0);
+                        foreach (var kvp in item.contents)
+                        {
+                            buffer = utf.GetBytes(kvp.Item1);
+                            sha.TransformBlock(buffer, 0, buffer.Length, null, 0);
+                            buffer = utf.GetBytes(kvp.Item2);
+                            sha.TransformBlock(buffer, 0, buffer.Length, null, 0);
+                        }
+                        new_item.id = item.id + ":" + Convert.ToBase64String(sha.Hash);
+                        new_items.AddLast(new_item);
+                    }
+                    items = new_items;
+                }
 
-                detailed_infos.AddRange(GetInfosAsKvp(items));
+                if (items.First != null)
+                {
+                    GetTag("(new)").Add(items);
 
-                detailed_infos[Tuple.Create(feed_detailed_info.feed_uri, "")] = feed_detailed_info;
+                    detailed_infos.AddRange(GetInfosAsKvp(items));
+
+                    detailed_infos[Tuple.Create(feed_detailed_info.feed_uri, "")] = feed_detailed_info;
+
+                    Dictionary<string, List<DetailedInfo>> tags = new Dictionary<string,List<DetailedInfo>>();
+
+                    foreach (var item in items)
+                    {
+                        ProcessItem(item, tags);
+                    }
+
+                    foreach (var kvp in tags)
+                    {
+                        GetTag(kvp.Key).Add(kvp.Value);
+                    }
+
+                    GetTag("(new)").Remove(items);
+                }
 
                 feed_infos[info.uri] = info;
 
@@ -370,6 +451,22 @@ namespace FormsFeed.Cache
             }
 
             return true;
+        }
+
+        private void MarkItemToTag(string tag, DetailedInfo item, Dictionary<string, List<DetailedInfo>> tags)
+        {
+            List<DetailedInfo> itemlist;
+            if (!tags.TryGetValue(tag, out itemlist))
+            {
+                itemlist = new List<DetailedInfo>();
+                tags[tag] = itemlist;
+            }
+            itemlist.Add(item);
+        }
+
+        private void ProcessItem(DetailedInfo item, Dictionary<string, List<DetailedInfo>> tags)
+        {
+            MarkItemToTag("(unread)", item, tags);
         }
 
         private IEnumerable<KeyValuePair<Tuple<string, string>, DetailedInfo>> GetInfosAsKvp(IEnumerable<DetailedInfo> infos)

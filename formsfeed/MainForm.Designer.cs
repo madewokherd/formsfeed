@@ -44,6 +44,8 @@
             this.webbrowser = new System.Windows.Forms.WebBrowser();
             this.itemtoolstrip = new System.Windows.Forms.ToolStrip();
             this.allitemsbutton = new System.Windows.Forms.ToolStripButton();
+            this.feedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.markAllItemsAsReadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.statusbar.SuspendLayout();
             this.itemtoolstrip.SuspendLayout();
@@ -52,6 +54,7 @@
             // menuStrip1
             // 
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.feedToolStripMenuItem,
             this.fIleToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
@@ -196,6 +199,21 @@
             this.allitemsbutton.Text = "Show item list";
             this.allitemsbutton.Click += new System.EventHandler(this.allitemsbutton_Click);
             // 
+            // feedToolStripMenuItem
+            // 
+            this.feedToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.markAllItemsAsReadToolStripMenuItem});
+            this.feedToolStripMenuItem.Name = "feedToolStripMenuItem";
+            this.feedToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
+            this.feedToolStripMenuItem.Text = "Feed";
+            // 
+            // markAllItemsAsReadToolStripMenuItem
+            // 
+            this.markAllItemsAsReadToolStripMenuItem.Name = "markAllItemsAsReadToolStripMenuItem";
+            this.markAllItemsAsReadToolStripMenuItem.Size = new System.Drawing.Size(188, 22);
+            this.markAllItemsAsReadToolStripMenuItem.Text = "Mark all items as read";
+            this.markAllItemsAsReadToolStripMenuItem.Click += new System.EventHandler(this.markAllItemsAsReadToolStripMenuItem_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -239,6 +257,8 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStrip itemtoolstrip;
         private System.Windows.Forms.ToolStripButton allitemsbutton;
+        private System.Windows.Forms.ToolStripMenuItem feedToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem markAllItemsAsReadToolStripMenuItem;
     }
 }
 

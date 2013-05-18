@@ -133,12 +133,21 @@ namespace FormsFeed.WinForms
         {
             Tag tag = cache.GetTag("(unread)");
             List<DetailedInfo> infos = new List<DetailedInfo>(tag.GetSummaries());
+            HashSet<Tuple<string, string>> items_to_remove = new HashSet<Tuple<string, string>>();
+            foreach (var kvp in current_items)
+            {
+                DetailedInfo info = (DetailedInfo)kvp.Value.Tag;
+                items_to_remove.Add(Tuple.Create(info.feed_uri, info.id));
+            }
             itemsview.BeginUpdate();
             foreach (var info in infos)
             {
                 var key = Tuple.Create(info.feed_uri, info.id);
                 if (current_items.ContainsKey(key))
+                {
+                    items_to_remove.Remove(key);
                     continue;
+                }
                 ListViewItem item = new ListViewItem();
                 item.Tag = info;
                 item.Text = info.title;
@@ -146,6 +155,11 @@ namespace FormsFeed.WinForms
                 item.SubItems.Add(info.timestamp.ToLocalTime().ToString());
                 itemsview.Items.Add(item);
                 current_items[key] = item;
+            }
+            foreach (var key in items_to_remove)
+            {
+                itemsview.Items.Remove(current_items[key]);
+                current_items.Remove(key);
             }
             itemsview.EndUpdate();
         }
@@ -223,6 +237,12 @@ namespace FormsFeed.WinForms
         private void itemsview_Click(object sender, EventArgs e)
         {
             SetView(View.SingleItem);
+        }
+
+        private void markAllItemsAsReadToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            cache.GetTag("(unread)").Remove(current_items.Keys);
+            RefreshItemsView();
         }
     }
 }

@@ -19,6 +19,7 @@ namespace FormsFeed.WinForms
             this.current_items = new Dictionary<Tuple<string, string>, ListViewItem>();
             InitializeComponent();
             this.itemsview.ListViewItemSorter = new ListViewItemSort();
+            current_view = View.List;
         }
 
         public Cache cache;
@@ -29,8 +30,50 @@ namespace FormsFeed.WinForms
 
         private Dictionary<Tuple<string, string>, ListViewItem> current_items;
 
+        string last_webbrowser_feedurl;
+        string last_webbrowser_id;
+
         private delegate void VoidNoArgsDelegate();
         private delegate void VoidIntDelegate(int i);
+
+        enum View
+        {
+            List,
+            SingleItem
+        }
+
+        View current_view;
+
+        private void SetView(View new_view)
+        {
+            if (current_view == new_view)
+                return;
+            SuspendLayout();
+            switch (current_view)
+            {
+                case View.List:
+                    itemsview.Hide();
+                    listToolStripMenuItem.CheckState = CheckState.Unchecked;
+                    break;
+                case View.SingleItem:
+                    webbrowser.Hide();
+                    singleItemToolStripMenuItem.CheckState = CheckState.Unchecked;
+                    break;
+            }
+            current_view = new_view;
+            switch (new_view)
+            {
+                case View.List:
+                    itemsview.Show();
+                    listToolStripMenuItem.CheckState = CheckState.Checked;
+                    break;
+                case View.SingleItem:
+                    webbrowser.Show();
+                    singleItemToolStripMenuItem.CheckState = CheckState.Checked;
+                    break;
+            }
+            ResumeLayout();
+        }
 
         private void UpdateProgressControls()
         {
@@ -72,6 +115,7 @@ namespace FormsFeed.WinForms
 
         public void RefreshItems()
         {
+            RefreshItemsView();
             if (!refreshing)
             {
                 refreshing = true;
@@ -106,7 +150,6 @@ namespace FormsFeed.WinForms
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            RefreshItemsView();
             RefreshItems();
         }
 
@@ -118,6 +161,56 @@ namespace FormsFeed.WinForms
         private void itemsview_Resize(object sender, EventArgs e)
         {
             itemsview.Columns[0].Width = itemsview.Width - (itemsview.Columns[1].Width + itemsview.Columns[2].Width + 24);
+        }
+
+        private void listToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SetView(View.List);
+        }
+
+        private void singleItemToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SetView(View.SingleItem);
+        }
+
+        private void MaybeUpdateWebbrowser()
+        {
+            if (!webbrowser.Visible || itemsview.SelectedItems.Count == 0)
+                return;
+            DetailedInfo summaryinfo = (DetailedInfo)itemsview.SelectedItems[0].Tag;
+            if (summaryinfo.feed_uri == last_webbrowser_feedurl && summaryinfo.id == last_webbrowser_id)
+                return;
+            last_webbrowser_feedurl = summaryinfo.feed_uri;
+            last_webbrowser_id = summaryinfo.id;
+            DetailedInfo info;
+            if (!cache.TryGetDetailedInfo(summaryinfo.feed_uri, summaryinfo.id, out info))
+            {
+                webbrowser.DocumentText = string.Format("ERROR: Missing detailed item info for {0} {1}", summaryinfo.feed_uri, summaryinfo.id);
+                return;
+            }
+            string content_uri = info.get_content_uri();
+            if (content_uri != null)
+            {
+                webbrowser.Navigate(content_uri);
+                return;
+            }
+            string content_html = info.get_content_html();
+            if (content_html != null)
+            {
+                webbrowser.DocumentText = content_html;
+                return;
+            }
+            webbrowser.DocumentText = string.Format("ERROR: Couldn't find content for {0} {1}", summaryinfo.feed_uri, summaryinfo.id);
+        }
+
+        private void webbrowser_VisibleChanged(object sender, EventArgs e)
+        {
+            MaybeUpdateWebbrowser();
+        }
+
+        private void itemsview_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            MaybeUpdateWebbrowser();
         }
     }
 }

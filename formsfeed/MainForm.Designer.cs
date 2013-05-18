@@ -30,15 +30,18 @@
         {
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fIleToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.listToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.singleItemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.refreshToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusbar = new System.Windows.Forms.StatusStrip();
             this.statusprogress = new System.Windows.Forms.ToolStripProgressBar();
             this.statuslabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.itemsview = new System.Windows.Forms.ListView();
-            this.webBrowser1 = new System.Windows.Forms.WebBrowser();
-            this.authorcolumn = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.textcolumn = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.authorcolumn = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.datecolumn = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.webbrowser = new System.Windows.Forms.WebBrowser();
             this.menuStrip1.SuspendLayout();
             this.statusbar.SuspendLayout();
             this.SuspendLayout();
@@ -56,10 +59,34 @@
             // fIleToolStripMenuItem
             // 
             this.fIleToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.listToolStripMenuItem,
+            this.singleItemToolStripMenuItem,
+            this.toolStripSeparator1,
             this.refreshToolStripMenuItem});
             this.fIleToolStripMenuItem.Name = "fIleToolStripMenuItem";
             this.fIleToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             this.fIleToolStripMenuItem.Text = "View";
+            // 
+            // listToolStripMenuItem
+            // 
+            this.listToolStripMenuItem.Checked = true;
+            this.listToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.listToolStripMenuItem.Name = "listToolStripMenuItem";
+            this.listToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
+            this.listToolStripMenuItem.Text = "List";
+            this.listToolStripMenuItem.Click += new System.EventHandler(this.listToolStripMenuItem_Click);
+            // 
+            // singleItemToolStripMenuItem
+            // 
+            this.singleItemToolStripMenuItem.Name = "singleItemToolStripMenuItem";
+            this.singleItemToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
+            this.singleItemToolStripMenuItem.Text = "Item Only";
+            this.singleItemToolStripMenuItem.Click += new System.EventHandler(this.singleItemToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(129, 6);
             // 
             // refreshToolStripMenuItem
             // 
@@ -106,22 +133,19 @@
             this.itemsview.LabelWrap = false;
             this.itemsview.Location = new System.Drawing.Point(0, 24);
             this.itemsview.Margin = new System.Windows.Forms.Padding(0);
+            this.itemsview.MultiSelect = false;
             this.itemsview.Name = "itemsview";
             this.itemsview.Size = new System.Drawing.Size(354, 315);
             this.itemsview.TabIndex = 1;
             this.itemsview.UseCompatibleStateImageBehavior = false;
             this.itemsview.View = System.Windows.Forms.View.Details;
+            this.itemsview.SelectedIndexChanged += new System.EventHandler(this.itemsview_SelectedIndexChanged);
             this.itemsview.Resize += new System.EventHandler(this.itemsview_Resize);
             // 
-            // webBrowser1
+            // textcolumn
             // 
-            this.webBrowser1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.webBrowser1.Location = new System.Drawing.Point(0, 24);
-            this.webBrowser1.MinimumSize = new System.Drawing.Size(20, 20);
-            this.webBrowser1.Name = "webBrowser1";
-            this.webBrowser1.Size = new System.Drawing.Size(354, 315);
-            this.webBrowser1.TabIndex = 2;
-            this.webBrowser1.Visible = false;
+            this.textcolumn.DisplayIndex = 1;
+            this.textcolumn.Text = "Text";
             // 
             // authorcolumn
             // 
@@ -129,22 +153,30 @@
             this.authorcolumn.Text = "Author";
             this.authorcolumn.Width = 90;
             // 
-            // textcolumn
-            // 
-            this.textcolumn.DisplayIndex = 1;
-            this.textcolumn.Text = "Text";
-            // 
             // datecolumn
             // 
             this.datecolumn.Text = "Date";
             this.datecolumn.Width = 150;
+            // 
+            // webbrowser
+            // 
+            this.webbrowser.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.webbrowser.Location = new System.Drawing.Point(0, 24);
+            this.webbrowser.Margin = new System.Windows.Forms.Padding(0);
+            this.webbrowser.MinimumSize = new System.Drawing.Size(20, 20);
+            this.webbrowser.Name = "webbrowser";
+            this.webbrowser.ScriptErrorsSuppressed = true;
+            this.webbrowser.Size = new System.Drawing.Size(354, 315);
+            this.webbrowser.TabIndex = 2;
+            this.webbrowser.Visible = false;
+            this.webbrowser.VisibleChanged += new System.EventHandler(this.webbrowser_VisibleChanged);
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(354, 339);
-            this.Controls.Add(this.webBrowser1);
+            this.Controls.Add(this.webbrowser);
             this.Controls.Add(this.itemsview);
             this.Controls.Add(this.statusbar);
             this.Controls.Add(this.menuStrip1);
@@ -170,10 +202,13 @@
         private System.Windows.Forms.ToolStripProgressBar statusprogress;
         private System.Windows.Forms.ToolStripStatusLabel statuslabel;
         private System.Windows.Forms.ListView itemsview;
-        private System.Windows.Forms.WebBrowser webBrowser1;
+        private System.Windows.Forms.WebBrowser webbrowser;
         private System.Windows.Forms.ColumnHeader authorcolumn;
         private System.Windows.Forms.ColumnHeader textcolumn;
         private System.Windows.Forms.ColumnHeader datecolumn;
+        private System.Windows.Forms.ToolStripMenuItem listToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem singleItemToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
     }
 }
 

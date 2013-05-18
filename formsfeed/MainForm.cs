@@ -143,7 +143,7 @@ namespace FormsFeed.WinForms
                 item.Tag = info;
                 item.Text = info.title;
                 item.SubItems.Add(info.author);
-                item.SubItems.Add(info.timestamp.ToString());
+                item.SubItems.Add(info.timestamp.ToLocalTime().ToString());
                 itemsview.Items.Add(item);
                 current_items[key] = item;
             }

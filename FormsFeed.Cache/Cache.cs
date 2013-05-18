@@ -565,10 +565,18 @@ namespace FormsFeed
             return result;
         }
 
-        public void UpdateAll(bool force)
+        public delegate void ProgressCallback(int total);
+
+        private static void NoProgressCallback(int total)
+        {
+        }
+
+        public void UpdateAll(bool force, ProgressCallback cb)
         {
             ParallelOptions options = new ParallelOptions();
             options.MaxDegreeOfParallelism = 16;
+            var subs = new List<string>(GetExpiredSubscriptions());
+            cb(subs.Count);
             Parallel.ForEach(GetExpiredSubscriptions(), options, feed_uri =>
             {
                 try
@@ -579,12 +587,23 @@ namespace FormsFeed
                 {
                     Console.WriteLine(e);
                 }
+                cb(subs.Count);
             });
+        }
+
+        public void UpdateAll(bool force)
+        {
+            UpdateAll(force, new ProgressCallback(NoProgressCallback));
+        }
+
+        public void UpdateAll(ProgressCallback cb)
+        {
+            UpdateAll(false, cb);
         }
 
         public void UpdateAll()
         {
-            UpdateAll(false);
+            UpdateAll(false, new ProgressCallback(NoProgressCallback));
         }
 
         public bool TryGetFeedBasicInfo(string uri, out FeedBasicInfo info)

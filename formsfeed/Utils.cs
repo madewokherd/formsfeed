@@ -59,7 +59,7 @@ namespace FormsFeed.WinForms
             _SHELLEXECUTEINFO info = new _SHELLEXECUTEINFO();
             info.cbSize = (uint)Marshal.SizeOf(typeof(_SHELLEXECUTEINFO));
             info.fMask = (uint)(SEE_MASK.CLASSNAME);
-            info.lpClass = "htmlfile";
+            info.lpClass = "http";
             info.lpFile = uri;
             info.nShow = 10;
             ShellExecuteEx(ref info);

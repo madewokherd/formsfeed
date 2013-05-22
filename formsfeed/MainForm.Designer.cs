@@ -48,6 +48,7 @@
             this.allitemsbutton = new System.Windows.Forms.ToolStripButton();
             this.itemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openInNewWindowToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.copyLinkLocationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.statusbar.SuspendLayout();
             this.itemtoolstrip.SuspendLayout();
@@ -221,7 +222,8 @@
             // itemToolStripMenuItem
             // 
             this.itemToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.openInNewWindowToolStripMenuItem});
+            this.openInNewWindowToolStripMenuItem,
+            this.copyLinkLocationToolStripMenuItem});
             this.itemToolStripMenuItem.Name = "itemToolStripMenuItem";
             this.itemToolStripMenuItem.Size = new System.Drawing.Size(43, 20);
             this.itemToolStripMenuItem.Text = "Item";
@@ -232,6 +234,13 @@
             this.openInNewWindowToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
             this.openInNewWindowToolStripMenuItem.Text = "Open in New Window";
             this.openInNewWindowToolStripMenuItem.Click += new System.EventHandler(this.openInNewWindowToolStripMenuItem_Click);
+            // 
+            // copyLinkLocationToolStripMenuItem
+            // 
+            this.copyLinkLocationToolStripMenuItem.Name = "copyLinkLocationToolStripMenuItem";
+            this.copyLinkLocationToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.copyLinkLocationToolStripMenuItem.Text = "Copy Link Location";
+            this.copyLinkLocationToolStripMenuItem.Click += new System.EventHandler(this.copyLinkLocationToolStripMenuItem_Click);
             // 
             // MainForm
             // 
@@ -281,6 +290,7 @@
         private System.Windows.Forms.ToolStripMenuItem markAllItemsAsReadToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem itemToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openInNewWindowToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem copyLinkLocationToolStripMenuItem;
     }
 }
 

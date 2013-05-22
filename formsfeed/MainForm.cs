@@ -316,5 +316,10 @@ namespace FormsFeed.WinForms
         {
             OpenCurrentItemInNewWindow();
         }
+
+        private void copyLinkLocationToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Clipboard.SetText(GetItemUrl());
+        }
     }
 }

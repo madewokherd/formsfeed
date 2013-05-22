@@ -434,7 +434,8 @@ namespace FormsFeed
                             sha.TransformBlock(buffer, 0, buffer.Length, null, 0);
                         }
                         new_item.id = item.id + ":" + Convert.ToBase64String(sha.Hash);
-                        new_items.AddLast(new_item);
+                        if (!detailed_infos.ContainsKey(Tuple.Create(new_item.feed_uri, new_item.id)))
+                            new_items.AddLast(new_item);
                     }
                     items = new_items;
                 }

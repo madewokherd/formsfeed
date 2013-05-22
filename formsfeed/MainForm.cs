@@ -311,5 +311,10 @@ namespace FormsFeed.WinForms
         {
             DeleteTempHtmlFile();
         }
+
+        private void itemsview_DoubleClick(object sender, EventArgs e)
+        {
+            OpenCurrentItemInNewWindow();
+        }
     }
 }

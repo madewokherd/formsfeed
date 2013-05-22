@@ -236,7 +236,7 @@ namespace FormsFeed.WinForms
 
         private void itemsview_Click(object sender, EventArgs e)
         {
-            SetView(View.SingleItem);
+            // SetView(View.SingleItem);
         }
 
         private void markAllItemsAsReadToolStripMenuItem_Click(object sender, EventArgs e)

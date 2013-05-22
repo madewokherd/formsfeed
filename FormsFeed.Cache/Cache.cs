@@ -573,7 +573,6 @@ namespace FormsFeed
         public void UpdateAll(bool force, ProgressCallback cb)
         {
             ParallelOptions options = new ParallelOptions();
-            options.MaxDegreeOfParallelism = 16;
             var subs = new List<string>(GetExpiredSubscriptions());
             cb(subs.Count);
             Parallel.ForEach(GetExpiredSubscriptions(), options, feed_uri =>

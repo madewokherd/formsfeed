@@ -5,10 +5,10 @@ using System.Collections.Concurrent;
 using System.Net;
 using CSharpTest.Net.Collections;
 using CSharpTest.Net.Serialization;
-using Argotic.Syndication;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
 using System.Text;
+using HtmlAgilityPack;
 
 namespace FormsFeed
 {
@@ -20,6 +20,13 @@ namespace FormsFeed
         internal BPlusTree<Tuple<string, string>, DetailedInfo> detailed_infos;
         private ConcurrentDictionary<string, Tag> loaded_tags;
         private ConcurrentDictionary<string, object> feed_locks;
+
+        static Cache()
+        {
+            // HACK
+            HtmlEntity.EntityName[39] = "apos";
+            HtmlEntity.EntityValue["apos"] = 39;
+        }
 
         public Cache(string path)
         {
@@ -125,6 +132,13 @@ namespace FormsFeed
             return result;
         }
 
+        private static string hash_string(string data)
+        {
+            SHA1 sha = SHA1.Create();
+            UTF8Encoding utf = new UTF8Encoding();
+            return Convert.ToBase64String(sha.ComputeHash(utf.GetBytes(data)));
+        }
+
         public bool Update(string uri, bool force)
         {
             lock (GetFeedLock(uri))
@@ -148,30 +162,30 @@ namespace FormsFeed
                 {
                     response = request.GetResponse();
                 }
-                catch (WebException e)
-                {
-                    if (e.Response is HttpWebResponse && ((HttpWebResponse)e.Response).StatusCode == HttpStatusCode.NotModified)
-                    {
-                        HttpWebResponse httpresponse = (HttpWebResponse)e.Response;
-                        info.expiration = DateTime.MinValue;
-                        var headers = httpresponse.Headers;
-                        for (int i = 0; i < headers.Count; i++)
-                        {
-                            string key = headers.GetKey(i);
-                            if (key == "Last-Modified" && DateTime.TryParse(headers.Get(i), out info.timestamp))
-                                info.timestamp = info.timestamp.ToUniversalTime();
-                            else if (key == "ETag")
-                                info.etag = headers.Get(i);
-                            else if (key == "Expires" && DateTime.TryParse(headers.Get(i), out info.expiration))
-                                info.expiration = info.expiration.ToUniversalTime();
-                        }
-                        feed_infos[info.uri] = info;
-                        return false;
-                    }
-                    throw;
-                }
                 catch (Exception e)
                 {
+                    if (e is WebException)
+                    {
+                        WebResponse r = ((WebException)e).Response;
+                        if (r is HttpWebResponse && ((HttpWebResponse)r).StatusCode == HttpStatusCode.NotModified)
+                        {
+                            HttpWebResponse httpresponse = (HttpWebResponse)r;
+                            info.expiration = DateTime.MinValue;
+                            var headers = httpresponse.Headers;
+                            for (int i = 0; i < headers.Count; i++)
+                            {
+                                string key = headers.GetKey(i);
+                                if (key == "Last-Modified" && DateTime.TryParse(headers.Get(i), out info.timestamp))
+                                    info.timestamp = info.timestamp.ToUniversalTime();
+                                else if (key == "ETag")
+                                    info.etag = headers.Get(i);
+                                else if (key == "Expires" && DateTime.TryParse(headers.Get(i), out info.expiration))
+                                    info.expiration = info.expiration.ToUniversalTime();
+                            }
+                            feed_infos[info.uri] = info;
+                            return false;
+                        }
+                    }
                     Console.WriteLine(e);
                     // FIXME: Store exception
                     info.expiration = DateTime.UtcNow.AddMinutes(15);
@@ -197,247 +211,292 @@ namespace FormsFeed
                     }
                 }
 
-                GenericSyndicationFeed feed = new GenericSyndicationFeed();
-                feed.Load(response.GetResponseStream());
+                HtmlDocument doc = new HtmlDocument();
+
+                doc.Load(response.GetResponseStream());
+
+                HtmlNode root = null;
+
+                foreach (var node in doc.DocumentNode.ChildNodes)
+                {
+                    if (node.Name == "rss" || node.Name == "feed" || node.Name == "html")
+                    {
+                        root = node;
+                        break;
+                    }
+                }
+
+                if (root == null)
+                {
+                    throw new Exception("unrecognized xml type");
+                }
 
                 DetailedInfo feed_detailed_info = new DetailedInfo();
                 feed_detailed_info.feed_uri = uri;
-                feed_detailed_info.title = feed.Title;
-                feed_detailed_info.author = feed.Title;
-                feed_detailed_info.argotic_resource = feed;
                 feed_detailed_info.contents = new List<Tuple<string, string>>();
-
-                if (feed.Description != null)
-                    feed_detailed_info.contents.Add(Tuple.Create("description", feed.Description));
-
-                FillCategories(feed_detailed_info, feed.Categories);
-
-                if (feed.Resource is AtomFeed)
-                {
-                    AtomFeed atomfeed = (AtomFeed)feed.Resource;
-                    FillAuthors(feed_detailed_info, atomfeed.Authors);
-                    FillContributors(feed_detailed_info, atomfeed.Contributors);
-                    if (atomfeed.Icon != null)
-                        feed_detailed_info.contents.Add(Tuple.Create("icon-uri", atomfeed.Icon.Uri.ToString()));
-                    FillLinks(feed_detailed_info, atomfeed.Links);
-                    if (atomfeed.Logo != null)
-                        feed_detailed_info.contents.Add(Tuple.Create("logo-uri", atomfeed.Logo.Uri.ToString()));
-                    if (atomfeed.Subtitle != null)
-                        AddAtomText(feed_detailed_info, "subtitle-html", atomfeed.Subtitle);
-                }
-                else if (feed.Resource is RssFeed)
-                {
-                    RssFeed rssfeed = (RssFeed)feed.Resource;
-                    RssChannel channel = rssfeed.Channel;
-
-                    if (channel.Image != null)
-                        feed_detailed_info.contents.Add(Tuple.Create("image-uri", channel.Image.Url.ToString()));
-                    if (channel.Link != null)
-                        feed_detailed_info.contents.Add(Tuple.Create("link-uri", channel.Link.ToString()));
-                    if (channel.TimeToLive > 0)
-                    {
-                        DateTime expiration = DateTime.UtcNow.AddMinutes(channel.TimeToLive);
-                        if (DateTime.Compare(expiration, info.expiration) > 0)
-                            info.expiration = expiration;
-                    }
-                    if (channel.SkipDays != null)
-                    {
-                        DateTime expiration = DateTime.UtcNow;
-                        bool delayed = false;
-                        int i = 0;
-                        while (channel.SkipDays.Contains(expiration.DayOfWeek))
-                        {
-                            expiration = new DateTime(expiration.Year, expiration.Month, expiration.Day, 0, 0, 0, DateTimeKind.Utc);
-                            expiration = expiration.AddDays(1.0);
-                            delayed = true;
-                            if (i == 7)
-                            {
-                                delayed = false;
-                                break;
-                            }
-                            i++;
-                        }
-                        if (delayed && DateTime.Compare(expiration, info.expiration) > 0)
-                            info.expiration = expiration;
-                    }
-                    if (channel.SkipHours != null)
-                    {
-                        DateTime expiration = DateTime.UtcNow;
-                        bool delayed = false;
-                        int i = 0;
-                        while (channel.SkipHours.Contains(expiration.Hour))
-                        {
-                            expiration = new DateTime(expiration.Year, expiration.Month, expiration.Day, expiration.Hour, 0, 0, DateTimeKind.Utc);
-                            expiration = expiration.AddHours(1.0);
-                            delayed = true;
-                            if (i == 24)
-                            {
-                                delayed = false;
-                                break;
-                            }
-                            i++;
-                        }
-                        if (delayed && DateTime.Compare(expiration, info.expiration) > 0)
-                            info.expiration = expiration;
-                    }
-                }
-
+                feed_detailed_info.original_resource = doc;
                 LinkedList<DetailedInfo> items = new LinkedList<DetailedInfo>();
-                HashSet<Tuple<string, string>> seen_keys = new HashSet<Tuple<string, string>>();
-                bool duplicate_keys = false;
 
-                if (feed.Resource is AtomFeed)
+                if (root.Name == "rss")
                 {
-                    foreach (var item in ((AtomFeed)feed.Resource).Entries)
+                    foreach (var rssnode in root.ChildNodes)
                     {
-                        DetailedInfo iteminfo = new DetailedInfo();
-                        iteminfo.feed_uri = info.uri;
-                        iteminfo.id = item.Id.Uri.ToString();
-                        if (detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
-                            continue;
-                        iteminfo.contents = new List<Tuple<string, string>>();
-                        iteminfo.title = item.Title.Content; // FIXME: remove any html/xml
-                        iteminfo.author = feed_detailed_info.title;
-                        iteminfo.timestamp = item.PublishedOn;
-                        iteminfo.argotic_resource = item;
-
-                        FillCategories(iteminfo, (new GenericSyndicationItem(item)).Categories);
-
-                        FillAuthors(iteminfo, item.Authors);
-                        FillContributors(iteminfo, item.Contributors);
-                        FillLinks(iteminfo, item.Links);
-                        if (item.Content != null)
+                        if (rssnode.Name != "channel")
                         {
-                            if (item.Content.Source != null)
-                                iteminfo.contents.Add(Tuple.Create("content-uri", item.Content.Source.ToString()));
+                            if (rssnode.NodeType == HtmlNodeType.Element)
+                                Console.Error.WriteLine("Unknown rss tag {0}", rssnode.Name);
+                            continue;
+                        }
+                        foreach (var channelnode in rssnode.ChildNodes)
+                        {
+                            if (channelnode.Name == "item")
+                            {
+                                DetailedInfo iteminfo = new DetailedInfo();
+                                iteminfo.feed_uri = info.uri;
+                                iteminfo.contents = new List<Tuple<string, string>>();
+                                iteminfo.original_resource = channelnode;
+                                foreach (var itemnode in channelnode.ChildNodes)
+                                {
+                                    if (itemnode.Name == "title")
+                                    {
+                                        iteminfo.title = GetNodeTextContent(itemnode);
+                                    }
+                                    else if (itemnode.Name == "link")
+                                    {
+                                        iteminfo.contents.Add(Tuple.Create("content-uri", GetNodeTextContent(itemnode)));
+                                    }
+                                    else if (itemnode.Name == "description")
+                                    {
+                                        iteminfo.contents.Add(Tuple.Create("description", GetNodeTextContent(itemnode)));
+                                    }
+                                    else if (itemnode.Name == "author")
+                                    {
+                                        string author = GetNodeTextContent(itemnode);
+                                        iteminfo.contents.Add(Tuple.Create("author-email", GetNodeTextContent(itemnode)));
+                                        if (author.Contains("(") && author.EndsWith(")"))
+                                        {
+                                            iteminfo.author = author.Split('(')[1].TrimEnd(')');
+                                        }
+                                    }
+                                    else if (itemnode.Name == "category")
+                                    {
+                                        if (itemnode.Attributes.Contains("domain"))
+                                            iteminfo.contents.Add(Tuple.Create(string.Format("category:{0}", GetNodeAttr(itemnode, "domain")), GetNodeTextContent(itemnode)));
+                                        else
+                                            iteminfo.contents.Add(Tuple.Create("category", GetNodeTextContent(itemnode)));
+                                    }
+                                    else if (itemnode.Name == "comments")
+                                    {
+                                        iteminfo.contents.Add(Tuple.Create("comments-uri", GetNodeTextContent(itemnode)));
+                                    }
+                                    else if (itemnode.Name == "source")
+                                    {
+                                        iteminfo.contents.Add(Tuple.Create(string.Format("source-url:{0}", GetNodeTextContent(itemnode)), GetNodeAttr(itemnode,"url")));
+                                    }
+                                    else if (itemnode.Name == "enclosure")
+                                    {
+                                        iteminfo.contents.Add(Tuple.Create(string.Format("enclosure-url:{0}", GetNodeAttr(itemnode, "type")), GetNodeAttr(itemnode, "url")));
+                                    }
+                                    else if (itemnode.Name.ToLowerInvariant() == "pubdate")
+                                    {
+                                        if (DateTime.TryParse(GetNodeTextContent(itemnode), out iteminfo.timestamp))
+                                            iteminfo.timestamp = iteminfo.timestamp.ToUniversalTime();
+                                    }
+                                    else if (itemnode.Name == "guid")
+                                    {
+                                        iteminfo.id = GetNodeTextContent(itemnode);
+                                    }
+                                    else if (itemnode.NodeType == HtmlNodeType.Element)
+                                    {
+                                        if (itemnode.Attributes.Count != 0)
+                                            iteminfo.contents.Add(Tuple.Create(string.Format("rss:{0}", itemnode.Name), itemnode.OuterHtml));
+                                        else
+                                            iteminfo.contents.Add(Tuple.Create(string.Format("rss:{0}", itemnode.Name), itemnode.InnerHtml));
+                                    }
+                                }
+                                if (string.IsNullOrWhiteSpace(iteminfo.id))
+                                {
+                                    iteminfo.id = string.Format("sha1:{0}", hash_string(channelnode.OuterHtml));
+                                }
+                                if (!detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
+                                    items.AddLast(iteminfo);
+                            }
+                            else if (channelnode.Name == "title")
+                            {
+                                feed_detailed_info.title = GetNodeTextContent(channelnode);
+                            }
+                            else if (channelnode.Name == "link")
+                            {
+                                feed_detailed_info.contents.Add(Tuple.Create("link-uri", GetNodeTextContent(channelnode)));
+                            }
+                            else if (channelnode.Name == "description")
+                            {
+                                feed_detailed_info.contents.Add(Tuple.Create("description", GetNodeTextContent(channelnode)));
+                            }
+                            else if (channelnode.Name == "category")
+                            {
+                                feed_detailed_info.contents.Add(Tuple.Create("category", GetNodeTextContent(channelnode)));
+                            }
+                            else if (channelnode.Name == "image")
+                            {
+                                foreach (var imagenode in channelnode.ChildNodes)
+                                {
+                                    if (imagenode.Name == "url")
+                                        feed_detailed_info.contents.Add(Tuple.Create("image-uri", GetNodeTextContent(channelnode)));
+                                }
+                            }
+                            else if (channelnode.NodeType == HtmlNodeType.Element)
+                            {
+                                if (channelnode.Attributes.Count != 0)
+                                    feed_detailed_info.contents.Add(Tuple.Create(string.Format("rss:{0}", channelnode.Name), channelnode.OuterHtml));
+                                else
+                                    feed_detailed_info.contents.Add(Tuple.Create(string.Format("rss:{0}", channelnode.Name), channelnode.InnerHtml));
+                            }
+                        }
+                    }
+                    if (string.IsNullOrWhiteSpace(feed_detailed_info.title))
+                        feed_detailed_info.title = uri;
+                    if (string.IsNullOrWhiteSpace(feed_detailed_info.author))
+                        feed_detailed_info.author = feed_detailed_info.title;
+                    LinkedListNode<DetailedInfo> node = items.First;
+                    while (node != null)
+                    {
+                        if (string.IsNullOrWhiteSpace(node.Value.author))
+                        {
+                            DetailedInfo new_info = node.Value;
+                            new_info.author = feed_detailed_info.author;
+                            node.Value = new_info;
+                        }
+                        node = node.Next;
+                    }
+                }
+                else if (root.Name == "feed")
+                {
+                    foreach (var feednode in root.ChildNodes)
+                    {
+                        if (feednode.Name == "entry")
+                        {
+                            DetailedInfo iteminfo = new DetailedInfo();
+                            iteminfo.feed_uri = info.uri;
+                            iteminfo.contents = new List<Tuple<string, string>>();
+                            iteminfo.original_resource = feednode;
+                            string update_date = null;
+                            foreach (var itemnode in feednode.ChildNodes)
+                            {
+                                if (itemnode.Name == "title")
+                                {
+                                    iteminfo.title = GetNodeTextContent(itemnode);
+                                }
+                                else if (itemnode.Name == "content")
+                                {
+                                    iteminfo.contents.Add(Tuple.Create("content-html", GetAtomTextHtml(itemnode)));
+                                }
+                                else if (itemnode.Name == "updated")
+                                {
+                                    update_date = GetNodeTextContent(itemnode);
+                                }
+                                else if (itemnode.Name == "link")
+                                {
+                                    AddAtomLink(iteminfo, itemnode);
+                                }
+                                else if (itemnode.Name == "author")
+                                {
+                                    AddAtomAuthor(iteminfo, itemnode);
+                                }
+                                else if (itemnode.Name == "category")
+                                {
+                                    if (itemnode.Attributes.Contains("domain"))
+                                        iteminfo.contents.Add(Tuple.Create(string.Format("category:{0}", GetNodeAttr(itemnode, "domain")), GetNodeTextContent(itemnode)));
+                                    else
+                                        iteminfo.contents.Add(Tuple.Create("category", GetNodeTextContent(itemnode)));
+                                }
+                                else if (itemnode.Name == "published")
+                                {
+                                    if (DateTime.TryParse(GetNodeTextContent(itemnode), out iteminfo.timestamp))
+                                        iteminfo.timestamp = iteminfo.timestamp.ToUniversalTime();
+                                }
+                                else if (itemnode.Name == "id")
+                                {
+                                    iteminfo.id = GetNodeTextContent(itemnode);
+                                }
+                                else if (itemnode.Name == "category")
+                                {
+                                    AddAtomCategory(iteminfo, itemnode);
+                                }
+                                else if (itemnode.NodeType == HtmlNodeType.Element)
+                                {
+                                    if (itemnode.Attributes.Count != 0)
+                                        iteminfo.contents.Add(Tuple.Create(string.Format("atom:{0}", itemnode.Name), itemnode.OuterHtml));
+                                    else
+                                        iteminfo.contents.Add(Tuple.Create(string.Format("atom:{0}", itemnode.Name), itemnode.InnerHtml));
+                                }
+                            }
+                            if (string.IsNullOrWhiteSpace(iteminfo.id))
+                            {
+                                iteminfo.id = string.Format("sha1:{0}", hash_string(feednode.OuterHtml));
+                            }
+                            else if (!string.IsNullOrWhiteSpace(update_date))
+                            {
+                                iteminfo.id = string.Format("{0}:{1}", iteminfo.id, update_date);
+                            }
+                            if (!detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
+                                items.AddLast(iteminfo);
+                        }
+                        else if (feednode.Name == "title")
+                        {
+                            feed_detailed_info.title = GetNodeTextContent(feednode);
+                        }
+                        else if (feednode.Name == "link")
+                        {
+                            AddAtomLink(feed_detailed_info, feednode);
+                        }
+                        else if (feednode.Name == "author")
+                        {
+                            AddAtomAuthor(feed_detailed_info, feednode);
+                        }
+                        else if (feednode.Name == "category")
+                        {
+                            AddAtomCategory(feed_detailed_info, feednode);
+                        }
+                        else if (feednode.Name == "logo")
+                        {
+                            foreach (var imagenode in feednode.ChildNodes)
+                            {
+                                if (imagenode.Name == "url")
+                                    feed_detailed_info.contents.Add(Tuple.Create("image-uri", GetNodeTextContent(feednode)));
+                            }
+                        }
+                        else if (feednode.Name == "subtitle")
+                        {
+                            feed_detailed_info.contents.Add(Tuple.Create("subtitle-html", GetAtomTextHtml(feednode)));
+                        }
+                        else if (feednode.NodeType == HtmlNodeType.Element)
+                        {
+                            if (feednode.Attributes.Count != 0)
+                                feed_detailed_info.contents.Add(Tuple.Create(string.Format("atom:{0}", feednode.Name), feednode.OuterHtml));
                             else
-                                iteminfo.contents.Add(Tuple.Create("content", item.Content.Content)); // FIXME: escape text?
+                                feed_detailed_info.contents.Add(Tuple.Create(string.Format("atom:{0}", feednode.Name), feednode.InnerHtml));
                         }
-                        if (item.Summary != null)
+                    }
+                    if (string.IsNullOrWhiteSpace(feed_detailed_info.title))
+                        feed_detailed_info.title = uri;
+                    if (string.IsNullOrWhiteSpace(feed_detailed_info.author))
+                        feed_detailed_info.author = feed_detailed_info.title;
+                    LinkedListNode<DetailedInfo> node = items.First;
+                    while (node != null)
+                    {
+                        if (string.IsNullOrWhiteSpace(node.Value.author))
                         {
-                            AddAtomText(iteminfo, "summary", item.Summary);
+                            DetailedInfo new_info = node.Value;
+                            new_info.author = feed_detailed_info.author;
+                            node.Value = new_info;
                         }
-
-                        if (DateTime.Compare(iteminfo.timestamp, previous_check) < 0)
-                            iteminfo.timestamp = previous_check;
-                        else if (DateTime.Compare(iteminfo.timestamp, DateTime.UtcNow) > 0)
-                            iteminfo.timestamp = DateTime.UtcNow;
-
-                        if (seen_keys.Contains(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
-                            duplicate_keys = true;
-                        else
-                            seen_keys.Add(Tuple.Create(iteminfo.feed_uri, iteminfo.id));
-
-                        items.AddLast(iteminfo);
+                        node = node.Next;
                     }
                 }
-                else if (feed.Resource is RssFeed)
+                else if (root.Name == "html")
                 {
-                    foreach (var item in ((RssFeed)feed.Resource).Channel.Items)
-                    {
-                        DetailedInfo iteminfo = new DetailedInfo();
-                        iteminfo.feed_uri = info.uri;
-                        if (item.Guid != null)
-                            iteminfo.id = item.Guid.Value.ToString();
-                        else if (item.Link != null)
-                            iteminfo.id = item.Link.ToString();
-                        else
-                            iteminfo.id = item.Title;
-                        if (detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
-                            continue;
-                        iteminfo.contents = new List<Tuple<string, string>>();
-                        iteminfo.title = item.Title;
-                        iteminfo.author = feed_detailed_info.title;
-                        iteminfo.timestamp = item.PublicationDate;
-                        iteminfo.argotic_resource = item;
-
-                        FillCategories(iteminfo, (new GenericSyndicationItem(item)).Categories);
-
-                        if (item.Author != null && item.Author != string.Empty)
-                        {
-                            iteminfo.author = item.Author;
-                            iteminfo.contents.Add(Tuple.Create("author", item.Author));
-                        }
-                        if (item.Comments != null)
-                            iteminfo.contents.Add(Tuple.Create("comments-uri", item.Comments.ToString()));
-                        if (item.Description != null)
-                            iteminfo.contents.Add(Tuple.Create("description", item.Description));
-                        foreach (var enclosure in item.Enclosures)
-                        {
-                            iteminfo.contents.Add(Tuple.Create("enclosure", enclosure.Url.ToString()));
-                        }
-                        if (item.Link != null)
-                            iteminfo.contents.Add(Tuple.Create("content-uri", item.Link.ToString()));
-
-                        if (DateTime.Compare(iteminfo.timestamp, previous_check) < 0)
-                            iteminfo.timestamp = previous_check;
-                        else if (DateTime.Compare(iteminfo.timestamp, DateTime.UtcNow) > 0)
-                            iteminfo.timestamp = DateTime.UtcNow;
-
-                        if (seen_keys.Contains(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
-                            duplicate_keys = true;
-                        else
-                            seen_keys.Add(Tuple.Create(iteminfo.feed_uri, iteminfo.id));
-
-                        items.AddLast(iteminfo);
-                    }
-                }
-                else
-                {
-                    foreach (var item in feed.Items)
-                    {
-                        DetailedInfo iteminfo = new DetailedInfo();
-                        iteminfo.feed_uri = info.uri;
-                        iteminfo.id = item.Title;
-                        if (detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
-                            continue;
-                        iteminfo.contents = new List<Tuple<string, string>>();
-                        iteminfo.title = item.Title;
-                        iteminfo.author = feed_detailed_info.author;
-                        iteminfo.timestamp = item.PublishedOn;
-                        iteminfo.argotic_resource = item;
-
-                        FillCategories(iteminfo, item.Categories);
-                        if (item.Summary != null)
-                            iteminfo.contents.Add(Tuple.Create("summary", item.Summary));
-
-                        if (DateTime.Compare(iteminfo.timestamp, previous_check) < 0)
-                            iteminfo.timestamp = previous_check;
-                        else if (DateTime.Compare(iteminfo.timestamp, DateTime.UtcNow) > 0)
-                            iteminfo.timestamp = DateTime.UtcNow;
-
-                        if (seen_keys.Contains(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
-                            duplicate_keys = true;
-                        else
-                            seen_keys.Add(Tuple.Create(iteminfo.feed_uri, iteminfo.id));
-
-                        items.AddLast(iteminfo);
-                    }
-                }
-
-                if (duplicate_keys)
-                {
-                    LinkedList<DetailedInfo> new_items = new LinkedList<DetailedInfo>();
-                    SHA1 sha = SHA1.Create();
-                    UTF8Encoding utf = new UTF8Encoding ();
-                    foreach (var item in items)
-                    {
-                        DetailedInfo new_item = item;
-                        sha.Initialize();
-                        byte[] buffer = utf.GetBytes(item.title);
-                        sha.TransformBlock(buffer, 0, buffer.Length, null, 0);
-                        foreach (var kvp in item.contents)
-                        {
-                            buffer = utf.GetBytes(kvp.Item1);
-                            sha.TransformBlock(buffer, 0, buffer.Length, null, 0);
-                            buffer = utf.GetBytes(kvp.Item2);
-                            sha.TransformBlock(buffer, 0, buffer.Length, null, 0);
-                        }
-                        new_item.id = item.id + ":" + Convert.ToBase64String(sha.Hash);
-                        if (!detailed_infos.ContainsKey(Tuple.Create(new_item.feed_uri, new_item.id)))
-                            new_items.AddLast(new_item);
-                    }
-                    items = new_items;
+                    throw new Exception ("html not supported yet");
                 }
 
                 if (items.First != null)
@@ -469,6 +528,84 @@ namespace FormsFeed
             return true;
         }
 
+        private void AddAtomCategory(DetailedInfo detailed_info, HtmlNode node)
+        {
+            string term = null, scheme = null, label = null;
+            foreach (var subnode in node.ChildNodes)
+            {
+                if (subnode.Name == "term")
+                    term = GetNodeTextContent(subnode);
+                else if (subnode.Name == "scheme")
+                    scheme = GetNodeTextContent(subnode);
+                else if (subnode.Name == "label")
+                    label = GetNodeTextContent(subnode);
+            }
+            if (term == null)
+                return;
+            if (scheme != null)
+                detailed_info.contents.Add(Tuple.Create(string.Format("category:{0}", scheme), term));
+            else
+                detailed_info.contents.Add(Tuple.Create("category", term));
+            if (label != null)
+                detailed_info.contents.Add(Tuple.Create("category-label", label));
+        }
+
+        private void AddAtomLink(DetailedInfo detailed_info, HtmlNode node)
+        {
+            string rel;
+            if (node.Attributes.Contains("rel"))
+                rel = GetNodeAttr(node, "rel");
+            else
+                rel = "alternate";
+            detailed_info.contents.Add(Tuple.Create(string.Format("link:{0}-uri", rel), GetNodeAttr(node, "href")));
+            if (node.Attributes.Contains("title"))
+                detailed_info.contents.Add(Tuple.Create(string.Format("link:{0}-title", rel), GetNodeAttr(node, "title")));
+        }
+
+        private void AddAtomAuthor(DetailedInfo detailed_info, HtmlNode node)
+        {
+            foreach (var subnode in node.ChildNodes)
+            {
+                if (subnode.Name == "name" && detailed_info.author == null)
+                    detailed_info.author = GetNodeTextContent(subnode);
+                else if (subnode.Name == "uri")
+                    detailed_info.contents.Add(Tuple.Create("author-uri", GetNodeTextContent(subnode)));
+                else if (subnode.Name == "email")
+                    detailed_info.contents.Add(Tuple.Create("author-email", GetNodeTextContent(subnode)));
+            }
+        }
+
+        private string GetNodeTextContent(HtmlNode node)
+        {
+            string result = string.Empty;
+            foreach (var subnode in node.ChildNodes)
+            {
+                if (subnode.NodeType == HtmlNodeType.Text)
+                    result = result + HtmlEntity.DeEntitize(subnode.InnerText).Trim();
+                else if (subnode.NodeType == HtmlNodeType.Element)
+                    result = result + subnode.OuterHtml;
+            }
+            return result;
+        }
+
+        private string GetNodeAttr(HtmlNode node, string name)
+        {
+            return HtmlEntity.DeEntitize(node.Attributes[name].Value);
+        }
+
+        private string GetAtomTextHtml(HtmlNode itemnode)
+        {
+            if (!itemnode.Attributes.Contains("type"))
+                return text_to_html(GetNodeTextContent(itemnode));
+            string texttype = GetNodeAttr(itemnode, "type");
+            if (texttype == "text")
+                return text_to_html(GetNodeTextContent(itemnode));
+            else if (texttype == "html")
+                return GetNodeTextContent(itemnode);
+            else
+                return itemnode.InnerHtml;
+        }
+
         private void MarkItemToTag(string tag, DetailedInfo item, Dictionary<string, List<DetailedInfo>> tags)
         {
             List<DetailedInfo> itemlist;
@@ -497,55 +634,8 @@ namespace FormsFeed
         internal static string text_to_html(string text)
         {
             string content = text;
-            content = content.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
-            content = string.Format("<pre>{0}</pre>", content);
+            content = content.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\n", "<br/>");
             return content;
-        }
-
-        private void AddAtomText(DetailedInfo feed_detailed_info, string key, AtomTextConstruct text)
-        {
-            string content = text.Content;
-            if (text.TextType == AtomTextConstructType.Text)
-            {
-                content = text_to_html(content);
-            }
-            feed_detailed_info.contents.Add(Tuple.Create(key, content));
-        }
-
-        private void FillLinks(DetailedInfo feed_detailed_info, System.Collections.ObjectModel.Collection<AtomLink> collection)
-        {
-            foreach (var item in collection)
-                feed_detailed_info.contents.Add(Tuple.Create(string.Format("link:{0}-uri", item.Relation), item.Uri.ToString()));
-        }
-
-        private void FillContributors(DetailedInfo feed_detailed_info, System.Collections.ObjectModel.Collection<AtomPersonConstruct> collection)
-        {
-            foreach (var person in collection)
-                feed_detailed_info.contents.Add(Tuple.Create("contributor", PersonToString(person)));
-        }
-
-        private void FillCategories(DetailedInfo feed_detailed_info, System.Collections.ObjectModel.Collection<GenericSyndicationCategory> collection)
-        {
-            foreach (var item in collection)
-                feed_detailed_info.contents.Add(Tuple.Create(string.Format("category:{0}", item.Scheme), item.Term));
-        }
-
-        private string PersonToString(AtomPersonConstruct person)
-        {
-            string stringvalue = person.Name;
-            if (person.EmailAddress != null)
-                stringvalue = string.Format("{0}\nemail={1}", stringvalue, person.EmailAddress);
-            if (person.Uri != null)
-                stringvalue = string.Format("{0}\nuri={1}", stringvalue, person.Uri.ToString());
-            return stringvalue;
-        }
-
-        private void FillAuthors(DetailedInfo feed_detailed_info, System.Collections.ObjectModel.Collection<AtomPersonConstruct> collection)
-        {
-            if (collection.Count != 0)
-                feed_detailed_info.author = collection[0].Name;
-            foreach (var person in collection)
-                feed_detailed_info.contents.Add(Tuple.Create("author", PersonToString(person)));
         }
 
         public bool Update(string uri)
@@ -583,7 +673,11 @@ namespace FormsFeed
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    lock (Console.Out)
+                    {
+                        Console.WriteLine(feed_uri);
+                        Console.WriteLine(e);
+                    }
                 }
                 cb(subs.Count);
             });
@@ -677,12 +771,42 @@ namespace FormsFeed
 
         public void ImportOpml(string filename)
         {
-            FileStream f = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
-            OpmlDocument doc = new OpmlDocument();
-            doc.Load(f);
-            foreach (var outline in doc.Outlines)
+            HtmlDocument doc = new HtmlDocument();
+            doc.Load(filename);
+
+            HtmlNode root = null;
+
+            foreach (var node in doc.DocumentNode.ChildNodes)
             {
-                string feed_uri = outline.Attributes["xmlUrl"];
+                if (node.Name == "opml")
+                {
+                    root = node;
+                    break;
+                }
+            }
+
+            if (root == null)
+                return;
+
+            HtmlNode body = null;
+
+            foreach (var node in root.ChildNodes)
+            {
+                if (node.Name == "body")
+                {
+                    body = node;
+                    break;
+                }
+            }
+
+            if (body == null)
+                return;
+
+            foreach (var node in body.ChildNodes)
+            {
+                if (node.Name != "outline")
+                    continue;
+                string feed_uri = GetNodeAttr(node, "xmlUrl");
                 Subscribe(feed_uri);
             }
         }

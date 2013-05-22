@@ -33,15 +33,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Argotic.Common">
-      <HintPath>..\..\..\..\..\..\..\coapp\argotic\Argotic\Microsoft .NET 3.5\Argotic.Web\bin\Release\Argotic.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="Argotic.Core">
-      <HintPath>..\..\..\..\..\..\..\coapp\argotic\Argotic\Microsoft .NET 3.5\Argotic.Web\bin\Release\Argotic.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Argotic.Extensions">
-      <HintPath>..\..\..\..\..\..\..\coapp\argotic\Argotic\Microsoft .NET 3.5\Argotic.Web\bin\Release\Argotic.Extensions.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />

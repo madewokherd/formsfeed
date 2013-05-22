@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Argotic.Syndication;
 
 namespace FormsFeed
 {
@@ -13,7 +12,7 @@ namespace FormsFeed
         public string author;
         public DateTime timestamp;
         public List<Tuple<string, string>> contents;
-        public object argotic_resource;
+        public object original_resource;
 
         public string get_content_uri()
         {

@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Threading;
-using Argotic.Common;
-using Argotic.Syndication;
 using FormsFeed;
 
 namespace feedtest

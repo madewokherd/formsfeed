@@ -29,6 +29,8 @@
         private void InitializeComponent()
         {
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
+            this.feedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.markAllItemsAsReadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fIleToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.listToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.singleItemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -44,8 +46,8 @@
             this.webbrowser = new System.Windows.Forms.WebBrowser();
             this.itemtoolstrip = new System.Windows.Forms.ToolStrip();
             this.allitemsbutton = new System.Windows.Forms.ToolStripButton();
-            this.feedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.markAllItemsAsReadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.itemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.openInNewWindowToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.statusbar.SuspendLayout();
             this.itemtoolstrip.SuspendLayout();
@@ -55,12 +57,28 @@
             // 
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.feedToolStripMenuItem,
-            this.fIleToolStripMenuItem});
+            this.fIleToolStripMenuItem,
+            this.itemToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Size = new System.Drawing.Size(354, 24);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
+            // 
+            // feedToolStripMenuItem
+            // 
+            this.feedToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.markAllItemsAsReadToolStripMenuItem});
+            this.feedToolStripMenuItem.Name = "feedToolStripMenuItem";
+            this.feedToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
+            this.feedToolStripMenuItem.Text = "Feed";
+            // 
+            // markAllItemsAsReadToolStripMenuItem
+            // 
+            this.markAllItemsAsReadToolStripMenuItem.Name = "markAllItemsAsReadToolStripMenuItem";
+            this.markAllItemsAsReadToolStripMenuItem.Size = new System.Drawing.Size(188, 22);
+            this.markAllItemsAsReadToolStripMenuItem.Text = "Mark all items as read";
+            this.markAllItemsAsReadToolStripMenuItem.Click += new System.EventHandler(this.markAllItemsAsReadToolStripMenuItem_Click);
             // 
             // fIleToolStripMenuItem
             // 
@@ -78,27 +96,27 @@
             this.listToolStripMenuItem.Checked = true;
             this.listToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.listToolStripMenuItem.Name = "listToolStripMenuItem";
-            this.listToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
+            this.listToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.listToolStripMenuItem.Text = "List";
             this.listToolStripMenuItem.Click += new System.EventHandler(this.listToolStripMenuItem_Click);
             // 
             // singleItemToolStripMenuItem
             // 
             this.singleItemToolStripMenuItem.Name = "singleItemToolStripMenuItem";
-            this.singleItemToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
+            this.singleItemToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.singleItemToolStripMenuItem.Text = "Item Only";
             this.singleItemToolStripMenuItem.Click += new System.EventHandler(this.singleItemToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(129, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(149, 6);
             // 
             // refreshToolStripMenuItem
             // 
             this.refreshToolStripMenuItem.Name = "refreshToolStripMenuItem";
             this.refreshToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
-            this.refreshToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
+            this.refreshToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.refreshToolStripMenuItem.Text = "Refresh";
             this.refreshToolStripMenuItem.Click += new System.EventHandler(this.refreshToolStripMenuItem_Click);
             // 
@@ -199,20 +217,20 @@
             this.allitemsbutton.Text = "Show item list";
             this.allitemsbutton.Click += new System.EventHandler(this.allitemsbutton_Click);
             // 
-            // feedToolStripMenuItem
+            // itemToolStripMenuItem
             // 
-            this.feedToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.markAllItemsAsReadToolStripMenuItem});
-            this.feedToolStripMenuItem.Name = "feedToolStripMenuItem";
-            this.feedToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
-            this.feedToolStripMenuItem.Text = "Feed";
+            this.itemToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.openInNewWindowToolStripMenuItem});
+            this.itemToolStripMenuItem.Name = "itemToolStripMenuItem";
+            this.itemToolStripMenuItem.Size = new System.Drawing.Size(43, 20);
+            this.itemToolStripMenuItem.Text = "Item";
             // 
-            // markAllItemsAsReadToolStripMenuItem
+            // openInNewWindowToolStripMenuItem
             // 
-            this.markAllItemsAsReadToolStripMenuItem.Name = "markAllItemsAsReadToolStripMenuItem";
-            this.markAllItemsAsReadToolStripMenuItem.Size = new System.Drawing.Size(188, 22);
-            this.markAllItemsAsReadToolStripMenuItem.Text = "Mark all items as read";
-            this.markAllItemsAsReadToolStripMenuItem.Click += new System.EventHandler(this.markAllItemsAsReadToolStripMenuItem_Click);
+            this.openInNewWindowToolStripMenuItem.Name = "openInNewWindowToolStripMenuItem";
+            this.openInNewWindowToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.openInNewWindowToolStripMenuItem.Text = "Open in New Window";
+            this.openInNewWindowToolStripMenuItem.Click += new System.EventHandler(this.openInNewWindowToolStripMenuItem_Click);
             // 
             // MainForm
             // 
@@ -227,6 +245,7 @@
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "MainForm";
             this.Text = "FormsFeed";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
@@ -259,6 +278,8 @@
         private System.Windows.Forms.ToolStripButton allitemsbutton;
         private System.Windows.Forms.ToolStripMenuItem feedToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem markAllItemsAsReadToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem itemToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem openInNewWindowToolStripMenuItem;
     }
 }
 

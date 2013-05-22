@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using FormsFeed;
+using System.IO;
 
 namespace FormsFeed.WinForms
 {
@@ -32,6 +33,10 @@ namespace FormsFeed.WinForms
 
         string last_webbrowser_feedurl;
         string last_webbrowser_id;
+
+        string temp_html_file;
+        string temp_html_file_feedurl;
+        string temp_html_file_id;
 
         private delegate void VoidNoArgsDelegate();
         private delegate void VoidIntDelegate(int i);
@@ -189,6 +194,64 @@ namespace FormsFeed.WinForms
             SetView(View.SingleItem);
         }
 
+        private bool GetItemUrlOrData(out string result)
+        {
+            DetailedInfo summaryinfo = (DetailedInfo)itemsview.SelectedItems[0].Tag;
+            last_webbrowser_feedurl = summaryinfo.feed_uri;
+            last_webbrowser_id = summaryinfo.id;
+            DetailedInfo info;
+            if (!cache.TryGetDetailedInfo(summaryinfo.feed_uri, summaryinfo.id, out info))
+            {
+                result = string.Format("ERROR: Missing detailed item info for {0} {1}", summaryinfo.feed_uri, summaryinfo.id);
+                return true;
+            }
+            string content_uri = info.get_content_uri();
+            if (content_uri != null)
+            {
+                result = content_uri;
+                return false;
+            }
+            string content_html = info.get_content_html();
+            if (content_html != null)
+            {
+                result = content_html;
+                return true;
+            }
+            result = string.Format("ERROR: Couldn't find content for {0} {1}", summaryinfo.feed_uri, summaryinfo.id);
+            return true;
+        }
+
+        private void DeleteTempHtmlFile()
+        {
+            if (temp_html_file != null)
+            {
+                File.Delete(temp_html_file);
+                temp_html_file = null;
+            }
+        }
+
+        private string GetItemUrl()
+        {
+            DetailedInfo summaryinfo = (DetailedInfo)itemsview.SelectedItems[0].Tag;
+            string result;
+            if (GetItemUrlOrData(out result))
+            {
+                if (temp_html_file_feedurl == summaryinfo.feed_uri && temp_html_file_id == summaryinfo.id)
+                {
+                    return temp_html_file;
+                }
+                DeleteTempHtmlFile();
+                temp_html_file = Path.GetTempFileName();
+                using (FileStream f = new FileStream(temp_html_file, FileMode.Open, FileAccess.Write))
+                {
+                    byte[] bytes = (new UTF8Encoding()).GetBytes(result);
+                    f.Write(bytes, 0, bytes.Length);
+                }
+                return temp_html_file;
+            }
+            return result;
+        }
+
         private void MaybeUpdateWebbrowser()
         {
             if (!webbrowser.Visible || itemsview.SelectedItems.Count == 0)
@@ -196,27 +259,16 @@ namespace FormsFeed.WinForms
             DetailedInfo summaryinfo = (DetailedInfo)itemsview.SelectedItems[0].Tag;
             if (summaryinfo.feed_uri == last_webbrowser_feedurl && summaryinfo.id == last_webbrowser_id)
                 return;
-            last_webbrowser_feedurl = summaryinfo.feed_uri;
-            last_webbrowser_id = summaryinfo.id;
-            DetailedInfo info;
-            if (!cache.TryGetDetailedInfo(summaryinfo.feed_uri, summaryinfo.id, out info))
+
+            string data;
+            if (GetItemUrlOrData(out data))
             {
-                webbrowser.DocumentText = string.Format("ERROR: Missing detailed item info for {0} {1}", summaryinfo.feed_uri, summaryinfo.id);
-                return;
+                webbrowser.DocumentText = data;
             }
-            string content_uri = info.get_content_uri();
-            if (content_uri != null)
+            else
             {
-                webbrowser.Navigate(content_uri);
-                return;
+                webbrowser.Navigate(data);
             }
-            string content_html = info.get_content_html();
-            if (content_html != null)
-            {
-                webbrowser.DocumentText = content_html;
-                return;
-            }
-            webbrowser.DocumentText = string.Format("ERROR: Couldn't find content for {0} {1}", summaryinfo.feed_uri, summaryinfo.id);
         }
 
         private void webbrowser_VisibleChanged(object sender, EventArgs e)
@@ -243,6 +295,21 @@ namespace FormsFeed.WinForms
         {
             cache.GetTag("(unread)").Remove(current_items.Keys);
             RefreshItemsView();
+        }
+
+        private void OpenCurrentItemInNewWindow()
+        {
+            Utils.OpenInDefaultBrowser(GetItemUrl());
+        }
+
+        private void openInNewWindowToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            OpenCurrentItemInNewWindow();
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            DeleteTempHtmlFile();
         }
     }
 }

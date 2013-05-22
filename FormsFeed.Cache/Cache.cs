@@ -236,6 +236,7 @@ namespace FormsFeed
                 feed_detailed_info.contents = new List<Tuple<string, string>>();
                 feed_detailed_info.original_resource = doc;
                 LinkedList<DetailedInfo> items = new LinkedList<DetailedInfo>();
+                HashSet<Tuple<string, string>> item_keys = new HashSet<Tuple<string, string>>();
 
                 if (root.Name == "rss")
                 {
@@ -333,8 +334,12 @@ namespace FormsFeed
                                 {
                                     iteminfo.id = string.Format("sha1:{0}", hash_string(channelnode.OuterHtml));
                                 }
-                                if (!detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
+                                if (!detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)) &&
+                                    !item_keys.Contains(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
+                                {
                                     items.AddLast(iteminfo);
+                                    item_keys.Add(Tuple.Create(iteminfo.feed_uri, iteminfo.id));
+                                }
                             }
                             else if (channelnode.Name == "title")
                             {
@@ -511,8 +516,12 @@ namespace FormsFeed
                             {
                                 iteminfo.id = string.Format("sha1:{0}", hash_string(rdfnode.OuterHtml));
                             }
-                            if (!detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
+                            if (!detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)) &&
+                                !item_keys.Contains(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
+                            {
                                 items.AddLast(iteminfo);
+                                item_keys.Add(Tuple.Create(iteminfo.feed_uri, iteminfo.id));
+                            }
                         }
                         else if (rdfnode.NodeType == HtmlNodeType.Element)
                         {
@@ -604,8 +613,12 @@ namespace FormsFeed
                             {
                                 iteminfo.id = string.Format("{0}:{1}", iteminfo.id, update_date);
                             }
-                            if (!detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
+                            if (!detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)) &&
+                                !item_keys.Contains(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
+                            {
                                 items.AddLast(iteminfo);
+                                item_keys.Add(Tuple.Create(iteminfo.feed_uri, iteminfo.id));
+                            }
                         }
                         else if (feednode.Name == "title")
                         {

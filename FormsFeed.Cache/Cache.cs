@@ -464,8 +464,6 @@ namespace FormsFeed
                 }
 
                 feed_infos[info.uri] = info;
-
-                //FIXME: Tag all new items as unread, apply any applicable filters?
             }
 
             return true;

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Security.Cryptography;
 using System.Text;
 using HtmlAgilityPack;
+using System.IO.Compression;
 
 namespace FormsFeed
 {
@@ -211,9 +212,28 @@ namespace FormsFeed
                     }
                 }
 
+                var memoryStream = new MemoryStream();
+                response.GetResponseStream().CopyTo(memoryStream);
+
+                // Type detection
+                memoryStream.Seek(0, SeekOrigin.Begin);
+                byte[] buffer = new byte[2];
+                memoryStream.Read(buffer, 0, 2);
+                if (buffer[0] == 0x1f && buffer[1] == 0x8b)
+                {
+                    // gzip
+                    memoryStream.Seek(0, SeekOrigin.Begin);
+                    var newMemoryStream = new MemoryStream();
+                    var gzipStream = new GZipStream(memoryStream, CompressionMode.Decompress);
+                    gzipStream.CopyTo(newMemoryStream);
+                    memoryStream = newMemoryStream;
+                }
+
+                memoryStream.Seek(0, SeekOrigin.Begin);
+
                 HtmlDocument doc = new HtmlDocument();
 
-                doc.Load(response.GetResponseStream());
+                doc.Load(memoryStream);
 
                 HtmlNode root = null;
 

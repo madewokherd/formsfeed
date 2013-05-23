@@ -773,6 +773,8 @@ namespace FormsFeed
                     result = result + HtmlEntity.DeEntitize(subnode.InnerText).Trim();
                 else if (subnode.NodeType == HtmlNodeType.Element)
                     result = result + subnode.OuterHtml;
+                else if (subnode.NodeType == HtmlNodeType.Comment && subnode.OuterHtml.StartsWith("<![CDATA[") && subnode.OuterHtml.EndsWith("]]>"))
+                    result = result + subnode.OuterHtml.Substring(9, subnode.OuterHtml.Length - 12);
             }
             return result;
         }

@@ -574,7 +574,6 @@ namespace FormsFeed
                             iteminfo.feed_uri = info.uri;
                             iteminfo.contents = new List<Tuple<string, string>>();
                             iteminfo.original_resource = feednode;
-                            string update_date = null;
                             foreach (var itemnode in feednode.ChildNodes)
                             {
                                 if (itemnode.Name == "title")
@@ -584,10 +583,6 @@ namespace FormsFeed
                                 else if (itemnode.Name == "content")
                                 {
                                     iteminfo.contents.Add(Tuple.Create("content-html", GetAtomTextHtml(itemnode)));
-                                }
-                                else if (itemnode.Name == "updated")
-                                {
-                                    update_date = GetNodeTextContent(itemnode);
                                 }
                                 else if (itemnode.Name == "link")
                                 {
@@ -628,10 +623,6 @@ namespace FormsFeed
                             if (string.IsNullOrWhiteSpace(iteminfo.id))
                             {
                                 iteminfo.id = string.Format("sha1:{0}", hash_string(feednode.OuterHtml));
-                            }
-                            else if (!string.IsNullOrWhiteSpace(update_date))
-                            {
-                                iteminfo.id = string.Format("{0}:{1}", iteminfo.id, update_date);
                             }
                             if (!detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)) &&
                                 !item_keys.Contains(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))

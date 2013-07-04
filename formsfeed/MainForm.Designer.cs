@@ -36,6 +36,9 @@
             this.singleItemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.refreshToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.itemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.openInNewWindowToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.copyLinkLocationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusbar = new System.Windows.Forms.StatusStrip();
             this.statusprogress = new System.Windows.Forms.ToolStripProgressBar();
             this.statuslabel = new System.Windows.Forms.ToolStripStatusLabel();
@@ -46,9 +49,6 @@
             this.webbrowser = new System.Windows.Forms.WebBrowser();
             this.itemtoolstrip = new System.Windows.Forms.ToolStrip();
             this.allitemsbutton = new System.Windows.Forms.ToolStripButton();
-            this.itemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.openInNewWindowToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.copyLinkLocationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.statusbar.SuspendLayout();
             this.itemtoolstrip.SuspendLayout();
@@ -97,29 +97,52 @@
             this.listToolStripMenuItem.Checked = true;
             this.listToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.listToolStripMenuItem.Name = "listToolStripMenuItem";
-            this.listToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.listToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
             this.listToolStripMenuItem.Text = "List";
             this.listToolStripMenuItem.Click += new System.EventHandler(this.listToolStripMenuItem_Click);
             // 
             // singleItemToolStripMenuItem
             // 
             this.singleItemToolStripMenuItem.Name = "singleItemToolStripMenuItem";
-            this.singleItemToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.singleItemToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
             this.singleItemToolStripMenuItem.Text = "Item Only";
             this.singleItemToolStripMenuItem.Click += new System.EventHandler(this.singleItemToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(149, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(129, 6);
             // 
             // refreshToolStripMenuItem
             // 
             this.refreshToolStripMenuItem.Name = "refreshToolStripMenuItem";
             this.refreshToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
-            this.refreshToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.refreshToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
             this.refreshToolStripMenuItem.Text = "Refresh";
             this.refreshToolStripMenuItem.Click += new System.EventHandler(this.refreshToolStripMenuItem_Click);
+            // 
+            // itemToolStripMenuItem
+            // 
+            this.itemToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.openInNewWindowToolStripMenuItem,
+            this.copyLinkLocationToolStripMenuItem});
+            this.itemToolStripMenuItem.Name = "itemToolStripMenuItem";
+            this.itemToolStripMenuItem.Size = new System.Drawing.Size(43, 20);
+            this.itemToolStripMenuItem.Text = "Item";
+            // 
+            // openInNewWindowToolStripMenuItem
+            // 
+            this.openInNewWindowToolStripMenuItem.Name = "openInNewWindowToolStripMenuItem";
+            this.openInNewWindowToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.openInNewWindowToolStripMenuItem.Text = "Open in New Window";
+            this.openInNewWindowToolStripMenuItem.Click += new System.EventHandler(this.openInNewWindowToolStripMenuItem_Click);
+            // 
+            // copyLinkLocationToolStripMenuItem
+            // 
+            this.copyLinkLocationToolStripMenuItem.Name = "copyLinkLocationToolStripMenuItem";
+            this.copyLinkLocationToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.copyLinkLocationToolStripMenuItem.Text = "Copy Link Location";
+            this.copyLinkLocationToolStripMenuItem.Click += new System.EventHandler(this.copyLinkLocationToolStripMenuItem_Click);
             // 
             // statusbar
             // 
@@ -160,6 +183,7 @@
             this.itemsview.Margin = new System.Windows.Forms.Padding(0);
             this.itemsview.MultiSelect = false;
             this.itemsview.Name = "itemsview";
+            this.itemsview.ShowItemToolTips = true;
             this.itemsview.Size = new System.Drawing.Size(354, 315);
             this.itemsview.TabIndex = 1;
             this.itemsview.UseCompatibleStateImageBehavior = false;
@@ -219,37 +243,14 @@
             this.allitemsbutton.Text = "Show item list";
             this.allitemsbutton.Click += new System.EventHandler(this.allitemsbutton_Click);
             // 
-            // itemToolStripMenuItem
-            // 
-            this.itemToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.openInNewWindowToolStripMenuItem,
-            this.copyLinkLocationToolStripMenuItem});
-            this.itemToolStripMenuItem.Name = "itemToolStripMenuItem";
-            this.itemToolStripMenuItem.Size = new System.Drawing.Size(43, 20);
-            this.itemToolStripMenuItem.Text = "Item";
-            // 
-            // openInNewWindowToolStripMenuItem
-            // 
-            this.openInNewWindowToolStripMenuItem.Name = "openInNewWindowToolStripMenuItem";
-            this.openInNewWindowToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
-            this.openInNewWindowToolStripMenuItem.Text = "Open in New Window";
-            this.openInNewWindowToolStripMenuItem.Click += new System.EventHandler(this.openInNewWindowToolStripMenuItem_Click);
-            // 
-            // copyLinkLocationToolStripMenuItem
-            // 
-            this.copyLinkLocationToolStripMenuItem.Name = "copyLinkLocationToolStripMenuItem";
-            this.copyLinkLocationToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
-            this.copyLinkLocationToolStripMenuItem.Text = "Copy Link Location";
-            this.copyLinkLocationToolStripMenuItem.Click += new System.EventHandler(this.copyLinkLocationToolStripMenuItem_Click);
-            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(354, 339);
             this.Controls.Add(this.webbrowser);
-            this.Controls.Add(this.itemtoolstrip);
             this.Controls.Add(this.itemsview);
+            this.Controls.Add(this.itemtoolstrip);
             this.Controls.Add(this.statusbar);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;

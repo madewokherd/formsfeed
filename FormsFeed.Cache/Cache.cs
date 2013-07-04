@@ -144,6 +144,7 @@ namespace FormsFeed
         {
             HtmlNode rootnode = (HtmlNode)item_info.original_resource;
             bool in_link = false;
+            DateTime updated = DateTime.MinValue;
             foreach (var itemnode in rootnode.ChildNodes)
             {
                 if (in_link)
@@ -210,6 +211,11 @@ namespace FormsFeed
                 {
                     item_info.id = GetNodeTextContent(itemnode);
                 }
+                else if (itemnode.Name == "updated")
+                {
+                    if (DateTime.TryParse(GetNodeTextContent(itemnode), out updated))
+                        updated = updated.ToUniversalTime();
+                }
                 else if (itemnode.NodeType == HtmlNodeType.Element)
                 {
                     if (itemnode.Attributes.Count != 0)
@@ -217,6 +223,10 @@ namespace FormsFeed
                     else
                         item_info.contents.Add(Tuple.Create(string.Format("xml:{0}", itemnode.Name), itemnode.InnerHtml));
                 }
+            }
+            if (item_info.timestamp == DateTime.MinValue && updated != DateTime.MinValue)
+            {
+                item_info.timestamp = updated;
             }
             if (string.IsNullOrWhiteSpace(item_info.id))
             {

@@ -119,13 +119,7 @@ namespace FormsFeed
                 return;
             if (RemoveContents)
             {
-                List<Tuple<string, string>> new_contents = new List<Tuple<string,string>>();
-                foreach (Tuple<string, string> id in info.contents)
-                {
-                    if (id.Item1 == "summary")
-                        new_contents.Add(id);
-                }
-                info.contents = new_contents;
+                info.contents = new List<Tuple<string,string>>();;
             }
             byte[] serialized_contents = ks.ToByteArray<DetailedInfo>(info);
             TaggedItem tagged_item = new TaggedItem();

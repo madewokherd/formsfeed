@@ -11,6 +11,7 @@ using System.Text;
 using HtmlAgilityPack;
 using System.IO.Compression;
 using System.Globalization;
+using System.Net.Mime;
 
 namespace FormsFeed
 {
@@ -387,6 +388,7 @@ namespace FormsFeed
 
         public bool Update(string uri, bool force)
         {
+            ContentType content_type = null;
             lock (GetFeedLock(uri))
             {
                 FeedBasicInfo info = GetBasicInfoSafe(uri);
@@ -455,6 +457,10 @@ namespace FormsFeed
                         else if (key == "Expires" && DateTime.TryParse(headers.Get(i), out info.expiration))
                             info.expiration = info.expiration.ToUniversalTime();
                     }
+                    if (!string.IsNullOrWhiteSpace(response.ContentType))
+                    {
+                        content_type = new ContentType(response.ContentType);
+                    }
                 }
 
                 var memoryStream = new MemoryStream();
@@ -478,7 +484,14 @@ namespace FormsFeed
 
                 HtmlDocument doc = new HtmlDocument();
 
-                doc.Load(memoryStream);
+                if (content_type == null || string.IsNullOrWhiteSpace(content_type.CharSet))
+                {
+                    doc.Load(memoryStream, true);
+                }
+                else
+                {
+                    doc.Load(memoryStream, Encoding.GetEncoding(content_type.CharSet), true);
+                }
 
                 HtmlNode root = null;
 

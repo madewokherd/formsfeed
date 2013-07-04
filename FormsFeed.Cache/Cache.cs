@@ -10,6 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using HtmlAgilityPack;
 using System.IO.Compression;
+using System.Globalization;
 
 namespace FormsFeed
 {
@@ -140,6 +141,155 @@ namespace FormsFeed
             return Convert.ToBase64String(sha.ComputeHash(utf.GetBytes(data)));
         }
 
+        private static bool ParseRfc822DateTime(string str, out DateTime result)
+        {
+            string[] tokens = str.Split(' ');
+            int pos = 0;
+            while (pos < tokens.Length && string.IsNullOrWhiteSpace(tokens[pos]))
+                pos++;
+            if (tokens[pos].EndsWith(","))
+            {
+                // Day of week; this can only result in rejecting the date so I don't care
+                pos++;
+                while (pos < tokens.Length && string.IsNullOrWhiteSpace(tokens[pos]))
+                    pos++;
+            }
+
+            result = DateTime.MinValue;
+
+            if (pos >= tokens.Length)
+                return false;
+            int day;
+            if (!(int.TryParse(tokens[pos], out day)))
+                return false;
+            pos++;
+            while (pos < tokens.Length && string.IsNullOrWhiteSpace(tokens[pos]))
+                pos++;
+
+            if (pos >= tokens.Length)
+                return false;
+            int month;
+            string[] months = DateTimeFormatInfo.InvariantInfo.AbbreviatedMonthNames;
+            for (month = 0; month < 12; month++)
+            {
+                if (months[month] == tokens[pos])
+                    break;
+            }
+            if (month == 12)
+                return false;
+            month++;
+            pos++;
+            while (pos < tokens.Length && string.IsNullOrWhiteSpace(tokens[pos]))
+                pos++;
+
+            if (pos >= tokens.Length)
+                return false;
+            int year;
+            if (!(int.TryParse(tokens[pos], out year)))
+                return false;
+            // Why does a standard published in 1999 allow 2-digit years?
+            if (year < 98)
+                year = year + 2000;
+            else if (year < 100)
+                year = year + 1900;
+            pos++;
+            while (pos < tokens.Length && string.IsNullOrWhiteSpace(tokens[pos]))
+                pos++;
+
+            int hour, minute, second;
+            if (pos >= tokens.Length)
+                return false;
+            string[] hour_token = tokens[pos].Split(':');
+            if (hour_token.Length == 2)
+            {
+                if (!int.TryParse(hour_token[0], out hour))
+                    return false;
+                if (!int.TryParse(hour_token[1], out minute))
+                    return false;
+                second = 0;
+            }
+            else if (hour_token.Length == 3)
+            {
+                if (!int.TryParse(hour_token[0], out hour))
+                    return false;
+                if (!int.TryParse(hour_token[1], out minute))
+                    return false;
+                if (!int.TryParse(hour_token[2], out second))
+                    return false;
+            }
+            else
+                return false;
+            pos++;
+            while (pos < tokens.Length && string.IsNullOrWhiteSpace(tokens[pos]))
+                pos++;
+
+            TimeZoneInfo tzi = TimeZoneInfo.Utc;
+            if (pos < tokens.Length)
+            {
+                string tz = tokens[pos];
+                if (tz == "UT" || tz == "GMT" || tz == "Z")
+                    tzi = TimeZoneInfo.Utc;
+                // We can't trust the EST/EDT distinction to be correct, so use a standard TimeZoneInfo
+                else if (tz == "EST" || tz == "EDT")
+                {
+                    tzi = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+                }
+                else if (tz == "CST" || tz == "CDT")
+                {
+                    tzi = TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time");
+                }
+                else if (tz == "MST" || tz == "MDT")
+                {
+                    tzi = TimeZoneInfo.FindSystemTimeZoneById("Mountain Standard Time");
+                }
+                else if (tz == "PST" || tz == "PDT")
+                {
+                    tzi = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+                }
+                else if (tz == "A")
+                    tzi = TimeZoneInfo.CreateCustomTimeZone("A", new TimeSpan(-1, 0, 0), "A", "A");
+                else if (tz == "M")
+                    tzi = TimeZoneInfo.CreateCustomTimeZone("M", new TimeSpan(-12, 0, 0), "M", "M");
+                else if (tz == "N")
+                    tzi = TimeZoneInfo.CreateCustomTimeZone("N", new TimeSpan(1, 0, 0), "N", "N");
+                else if (tz == "Y")
+                    tzi = TimeZoneInfo.CreateCustomTimeZone("Y", new TimeSpan(12, 0, 0), "Y", "Y");
+                else if (tz.StartsWith("+") || tz.StartsWith("-"))
+                {
+                    int offset;
+                    if (!int.TryParse(tz.Substring(1), out offset))
+                        return false;
+                    int hours, minutes;
+                    hours = offset / 100;
+                    minutes = offset % 100;
+                    if (tz.StartsWith("-"))
+                    {
+                        hours = -hours;
+                        minutes = -minutes;
+                    }
+                    tzi = TimeZoneInfo.CreateCustomTimeZone(tz, new TimeSpan(hours, minutes, 0), tz, tz);
+                }
+                else
+                    return false;
+                pos++;
+            }
+            while (pos < tokens.Length && string.IsNullOrWhiteSpace(tokens[pos]))
+                pos++;
+
+            if (pos < tokens.Length)
+                return false;
+
+            try
+            {
+                result = TimeZoneInfo.ConvertTimeToUtc(new DateTime(year, month, day, hour, minute, second, DateTimeKind.Unspecified), tzi);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return false;
+            }
+            return true;
+        }
+
         private static void ParseXmlSyndication(ref FeedBasicInfo feed, ref DetailedInfo feed_info, ref DetailedInfo item_info)
         {
             HtmlNode rootnode = (HtmlNode)item_info.original_resource;
@@ -147,6 +297,9 @@ namespace FormsFeed
             DateTime updated = DateTime.MinValue;
             foreach (var itemnode in rootnode.ChildNodes)
             {
+                string tagname = itemnode.Name.ToLowerInvariant();
+                if (tagname.Contains(":"))
+                    tagname = tagname.Split(':')[1];
                 if (in_link)
                 {
                     // HACK
@@ -154,64 +307,60 @@ namespace FormsFeed
                         item_info.contents.Add(Tuple.Create("content-uri", HtmlEntity.DeEntitize(itemnode.OuterHtml)));
                     in_link = false;
                 }
-                if (itemnode.Name == "title")
+                if (tagname == "title")
                 {
                     item_info.title = GetNodeTextContent(itemnode);
                 }
-                else if (itemnode.Name == "link")
+                else if (tagname == "link")
                 {
                     if (itemnode.Attributes.Contains("href"))
                         AddAtomLink(item_info, itemnode);
                     else
                         in_link = true;
                 }
-                else if (itemnode.Name == "description")
+                else if (tagname == "description")
                 {
                     item_info.contents.Add(Tuple.Create("description", GetNodeTextContent(itemnode)));
                 }
-                else if (itemnode.Name == "author")
+                else if (tagname == "author")
                 {
                     AddAtomAuthor(ref item_info, itemnode);
                 }
-                else if (itemnode.Name == "category")
+                else if (tagname == "category")
                 {
                     AddAtomCategory(item_info, itemnode);
                 }
-                else if (itemnode.Name == "comments")
+                else if (tagname == "comments")
                 {
                     item_info.contents.Add(Tuple.Create("comments-uri", GetNodeTextContent(itemnode)));
                 }
-                else if (itemnode.Name == "source")
+                else if (tagname == "source")
                 {
                     item_info.contents.Add(Tuple.Create(string.Format("source-url:{0}", GetNodeTextContent(itemnode)), GetNodeAttr(itemnode, "url")));
                 }
-                else if (itemnode.Name == "enclosure")
+                else if (tagname == "enclosure")
                 {
                     item_info.contents.Add(Tuple.Create(string.Format("enclosure-url:{0}", GetNodeAttr(itemnode, "type")), GetNodeAttr(itemnode, "url")));
                 }
-                else if (itemnode.Name.ToLowerInvariant() == "pubdate")
+                else if (tagname == "pubdate" || tagname == "published")
                 {
-                    if (DateTime.TryParse(GetNodeTextContent(itemnode), out item_info.timestamp))
+                    if (DateTime.TryParse(GetNodeTextContent(itemnode), out item_info.timestamp) ||
+                        ParseRfc822DateTime(GetNodeTextContent(itemnode), out item_info.timestamp))
                         item_info.timestamp = item_info.timestamp.ToUniversalTime();
                 }
-                else if (itemnode.Name == "guid")
+                else if (tagname == "guid")
                 {
                     item_info.id = GetNodeTextContent(itemnode);
                 }
-                else if (itemnode.Name == "content")
+                else if (tagname == "content")
                 {
                     item_info.contents.Add(Tuple.Create("content-html", GetAtomTextHtml(itemnode)));
                 }
-                else if (itemnode.Name == "published")
-                {
-                    if (DateTime.TryParse(GetNodeTextContent(itemnode), out item_info.timestamp))
-                        item_info.timestamp = item_info.timestamp.ToUniversalTime();
-                }
-                else if (itemnode.Name == "id")
+                else if (tagname == "id")
                 {
                     item_info.id = GetNodeTextContent(itemnode);
                 }
-                else if (itemnode.Name == "updated")
+                else if (tagname == "updated")
                 {
                     if (DateTime.TryParse(GetNodeTextContent(itemnode), out updated))
                         updated = updated.ToUniversalTime();

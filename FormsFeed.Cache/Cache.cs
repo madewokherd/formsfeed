@@ -225,9 +225,10 @@ namespace FormsFeed
                 pos++;
 
             TimeZoneInfo tzi = TimeZoneInfo.Utc;
+            string tz = "";
             if (pos < tokens.Length)
             {
-                string tz = tokens[pos];
+                tz = tokens[pos];
                 if (tz == "UT" || tz == "GMT" || tz == "Z")
                     tzi = TimeZoneInfo.Utc;
                 // We can't trust the EST/EDT distinction to be correct, so use a standard TimeZoneInfo
@@ -247,14 +248,20 @@ namespace FormsFeed
                 {
                     tzi = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
                 }
-                else if (tz == "A")
-                    tzi = TimeZoneInfo.CreateCustomTimeZone("A", new TimeSpan(-1, 0, 0), "A", "A");
-                else if (tz == "M")
-                    tzi = TimeZoneInfo.CreateCustomTimeZone("M", new TimeSpan(-12, 0, 0), "M", "M");
-                else if (tz == "N")
-                    tzi = TimeZoneInfo.CreateCustomTimeZone("N", new TimeSpan(1, 0, 0), "N", "N");
-                else if (tz == "Y")
-                    tzi = TimeZoneInfo.CreateCustomTimeZone("Y", new TimeSpan(12, 0, 0), "Y", "Y");
+                else if (tz.Length == 1)
+                {
+                    int ofs;
+                    char c = tz[0];
+                    if (c >= 'A' && c <= 'I')
+                        ofs = c - 'A' + 1;
+                    else if (c >= 'K' && c <= 'M')
+                        ofs = c - 'K' + 10;
+                    else if (c >= 'N' && c <= 'Y')
+                        ofs = -1 - (c - 'N');
+                    else
+                        return false;
+                    tzi = TimeZoneInfo.CreateCustomTimeZone(tz, new TimeSpan(ofs, 0, 0), tz, tz);
+                }
                 else if (tz.StartsWith("+") || tz.StartsWith("-"))
                 {
                     int offset;
@@ -282,7 +289,24 @@ namespace FormsFeed
 
             try
             {
-                result = TimeZoneInfo.ConvertTimeToUtc(new DateTime(year, month, day, hour, minute, second, DateTimeKind.Unspecified), tzi);
+                DateTime localtime = new DateTime(year, month, day, hour, minute, second, DateTimeKind.Unspecified);
+                if (tzi.IsAmbiguousTime(localtime))
+                {
+                    TimeSpan[] offsets = tzi.GetAmbiguousTimeOffsets(localtime);
+                    if (tz[1] == 'S')
+                        result = DateTime.SpecifyKind(localtime - tzi.BaseUtcOffset, DateTimeKind.Utc);
+                    else
+                    {
+                        if (offsets[0].Equals(tzi.BaseUtcOffset))
+                            result = DateTime.SpecifyKind(localtime - offsets[1], DateTimeKind.Utc);
+                        else
+                            result = DateTime.SpecifyKind(localtime - offsets[0], DateTimeKind.Utc);
+                    }
+                }
+                else
+                {
+                    result = TimeZoneInfo.ConvertTimeToUtc(localtime, tzi);
+                }
             }
             catch (ArgumentOutOfRangeException)
             {

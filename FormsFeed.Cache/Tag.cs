@@ -76,6 +76,7 @@ namespace FormsFeed
                             FileShare.Delete);
 
                         byte[] buffer = new byte[1024];
+                        long last_valid_ofs = 0;
 
                         while (true)
                         {
@@ -83,10 +84,7 @@ namespace FormsFeed
                             res.valid_ofs = f.Position;
                             bool valid = f.ReadByte() != 0;
                             if (f.Read(buffer, 0, 4) != 4)
-                            {
-                                f.SetLength(res.valid_ofs);
                                 break;
-                            }
                             int len = ps.FromByteArray<int>(buffer);
                             if (!valid)
                             {
@@ -103,7 +101,10 @@ namespace FormsFeed
                             }
                             res.info = ks.FromByteArray<DetailedInfo>(buffer);
                             tagged_items.Add(Tuple.Create(res.info.feed_uri, res.info.id), res);
+                            last_valid_ofs = f.Position;
                         }
+
+                        f.SetLength(last_valid_ofs);
 
                         loaded = true;
                     }

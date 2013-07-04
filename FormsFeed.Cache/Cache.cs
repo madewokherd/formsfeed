@@ -305,6 +305,8 @@ namespace FormsFeed
                     // HACK
                     if (itemnode.NodeType == HtmlNodeType.Text)
                         item_info.contents.Add(Tuple.Create("content-uri", HtmlEntity.DeEntitize(itemnode.OuterHtml)));
+                    else if (itemnode.NodeType == HtmlNodeType.Comment && itemnode.OuterHtml.StartsWith("<![CDATA[") && itemnode.OuterHtml.EndsWith("]]>"))
+                        item_info.contents.Add(Tuple.Create("content-uri", itemnode.OuterHtml.Substring(9, itemnode.OuterHtml.Length - 12)));
                     in_link = false;
                 }
                 if (tagname == "title")

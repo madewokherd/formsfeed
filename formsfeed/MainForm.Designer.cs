@@ -34,8 +34,6 @@
             this.fIleToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.listToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.singleItemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
-            this.refreshToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.itemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openInNewWindowToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.copyLinkLocationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -49,6 +47,7 @@
             this.webbrowser = new System.Windows.Forms.WebBrowser();
             this.itemtoolstrip = new System.Windows.Forms.ToolStrip();
             this.allitemsbutton = new System.Windows.Forms.ToolStripButton();
+            this.refreshToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.statusbar.SuspendLayout();
             this.itemtoolstrip.SuspendLayout();
@@ -69,6 +68,7 @@
             // feedToolStripMenuItem
             // 
             this.feedToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.refreshToolStripMenuItem,
             this.markAllItemsAsReadToolStripMenuItem});
             this.feedToolStripMenuItem.Name = "feedToolStripMenuItem";
             this.feedToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
@@ -85,9 +85,7 @@
             // 
             this.fIleToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.listToolStripMenuItem,
-            this.singleItemToolStripMenuItem,
-            this.toolStripSeparator1,
-            this.refreshToolStripMenuItem});
+            this.singleItemToolStripMenuItem});
             this.fIleToolStripMenuItem.Name = "fIleToolStripMenuItem";
             this.fIleToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             this.fIleToolStripMenuItem.Text = "View";
@@ -97,29 +95,16 @@
             this.listToolStripMenuItem.Checked = true;
             this.listToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.listToolStripMenuItem.Name = "listToolStripMenuItem";
-            this.listToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
+            this.listToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.listToolStripMenuItem.Text = "List";
             this.listToolStripMenuItem.Click += new System.EventHandler(this.listToolStripMenuItem_Click);
             // 
             // singleItemToolStripMenuItem
             // 
             this.singleItemToolStripMenuItem.Name = "singleItemToolStripMenuItem";
-            this.singleItemToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
+            this.singleItemToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.singleItemToolStripMenuItem.Text = "Item Only";
             this.singleItemToolStripMenuItem.Click += new System.EventHandler(this.singleItemToolStripMenuItem_Click);
-            // 
-            // toolStripSeparator1
-            // 
-            this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(129, 6);
-            // 
-            // refreshToolStripMenuItem
-            // 
-            this.refreshToolStripMenuItem.Name = "refreshToolStripMenuItem";
-            this.refreshToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
-            this.refreshToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
-            this.refreshToolStripMenuItem.Text = "Refresh";
-            this.refreshToolStripMenuItem.Click += new System.EventHandler(this.refreshToolStripMenuItem_Click);
             // 
             // itemToolStripMenuItem
             // 
@@ -243,6 +228,13 @@
             this.allitemsbutton.Text = "Show item list";
             this.allitemsbutton.Click += new System.EventHandler(this.allitemsbutton_Click);
             // 
+            // refreshToolStripMenuItem
+            // 
+            this.refreshToolStripMenuItem.Name = "refreshToolStripMenuItem";
+            this.refreshToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
+            this.refreshToolStripMenuItem.Size = new System.Drawing.Size(188, 22);
+            this.refreshToolStripMenuItem.Text = "Refresh";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -250,8 +242,8 @@
             this.ClientSize = new System.Drawing.Size(354, 339);
             this.Controls.Add(this.webbrowser);
             this.Controls.Add(this.itemsview);
-            this.Controls.Add(this.itemtoolstrip);
             this.Controls.Add(this.statusbar);
+            this.Controls.Add(this.itemtoolstrip);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "MainForm";
@@ -273,7 +265,6 @@
 
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem fIleToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem refreshToolStripMenuItem;
         private System.Windows.Forms.StatusStrip statusbar;
         private System.Windows.Forms.ToolStripProgressBar statusprogress;
         private System.Windows.Forms.ToolStripStatusLabel statuslabel;
@@ -284,7 +275,6 @@
         private System.Windows.Forms.ColumnHeader datecolumn;
         private System.Windows.Forms.ToolStripMenuItem listToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem singleItemToolStripMenuItem;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStrip itemtoolstrip;
         private System.Windows.Forms.ToolStripButton allitemsbutton;
         private System.Windows.Forms.ToolStripMenuItem feedToolStripMenuItem;
@@ -292,6 +282,7 @@
         private System.Windows.Forms.ToolStripMenuItem itemToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openInNewWindowToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem copyLinkLocationToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem refreshToolStripMenuItem;
     }
 }
 

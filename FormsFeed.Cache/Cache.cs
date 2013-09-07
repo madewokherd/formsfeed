@@ -353,6 +353,11 @@ namespace FormsFeed
                 {
                     AddAtomAuthor(ref item_info, itemnode);
                 }
+                else if (tagname == "creator")
+                {
+                    item_info.author = GetNodeTextContent(itemnode);
+                    item_info.contents.Add(Tuple.Create("author-name", item_info.author));
+                }
                 else if (tagname == "category")
                 {
                     AddAtomCategory(item_info, itemnode);
@@ -880,7 +885,7 @@ namespace FormsFeed
                     seen_tags = true;
                 }
                 else if (subnode.NodeType == HtmlNodeType.Text)
-                    node_text = node_text + HtmlEntity.DeEntitize(subnode.InnerText).Trim();
+                    node_text = node_text + HtmlEntity.DeEntitize(subnode.InnerText.Trim());
                 else if (subnode.NodeType == HtmlNodeType.Comment && subnode.OuterHtml.StartsWith("<![CDATA[") && subnode.OuterHtml.EndsWith("]]>"))
                     node_text = node_text + subnode.OuterHtml.Substring(9, subnode.OuterHtml.Length - 12);
             }

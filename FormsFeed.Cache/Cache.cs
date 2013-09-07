@@ -1105,6 +1105,14 @@ namespace FormsFeed
             return result;
         }
 
+        public IEnumerable<string> GetTagNames()
+        {
+            foreach (var file in Directory.GetFiles(basepath, "*.tag"))
+            {
+                yield return Path.GetFileNameWithoutExtension(file);
+            }
+        }
+
         public void SetSubscribed(string feed_uri, bool subscribed)
         {
             FeedBasicInfo info = GetBasicInfoSafe(feed_uri);

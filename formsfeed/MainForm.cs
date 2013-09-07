@@ -321,5 +321,54 @@ namespace FormsFeed.WinForms
         {
             Clipboard.SetText(GetItemUrl());
         }
+
+        private void itemsview_ItemSelectionChanged(object sender, ListViewItemSelectionChangedEventArgs e)
+        {
+            itemToolStripMenuItem.Enabled = itemsview.SelectedItems.Count != 0;
+        }
+
+        private void itemsview_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == System.Windows.Forms.MouseButtons.Right && itemsview.SelectedItems.Count != 0)
+            {
+                itemContextMenu.Show(itemsview, e.Location);
+            }
+        }
+
+        private void tagToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
+        {
+            DetailedInfo summaryinfo = (DetailedInfo)itemsview.SelectedItems[0].Tag;
+            var key = Tuple.Create(summaryinfo.feed_uri, summaryinfo.id);
+            while (!(tagToolStripMenuItem.DropDownItems[0] is ToolStripSeparator))
+                tagToolStripMenuItem.DropDownItems.RemoveAt(0);
+            foreach (var name in cache.GetTagNames())
+            {
+                if (name.ToLowerInvariant() == "(new)")
+                    continue;
+                Tag tag = cache.GetTag(name);
+                ToolStripMenuItem tsmi = new ToolStripMenuItem();
+                tsmi.Tag = name;
+                if (name.ToLowerInvariant() == "(unread)")
+                    tsmi.Text = "Unread";
+                else
+                    tsmi.Text = name;
+                tsmi.Checked = tag.Contains(key);
+                tagToolStripMenuItem.DropDownItems.Insert(0, tsmi);
+            }
+        }
+
+        private void tagToolStripMenuItem_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+            if (e.ClickedItem.Tag is string)
+            {
+                DetailedInfo summaryinfo = (DetailedInfo)itemsview.SelectedItems[0].Tag;
+                ToolStripMenuItem tsmi = (ToolStripMenuItem)e.ClickedItem;
+                Tag tag = cache.GetTag((string)tsmi.Tag);
+                if (tsmi.Checked)
+                    tag.Remove(summaryinfo);
+                else
+                    tag.Add(summaryinfo);
+            }
+        }
     }
 }

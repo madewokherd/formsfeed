@@ -252,24 +252,30 @@ namespace FormsFeed
 
         public bool TryGetSummary(string feed_uri, string id, out DetailedInfo info)
         {
-            throw new NotImplementedException();
+            return TryGetSummary(Tuple.Create(feed_uri, id), out info);
         }
 
         public bool TryGetSummary(Tuple<string, string> key, out DetailedInfo info)
         {
-            throw new NotImplementedException();
+            TaggedItem item;
+            if (tagged_items.TryGetValue(key, out item))
+            {
+                info = item.info;
+                return true;
+            }
+            info = default(DetailedInfo);
+            return false;
         }
 
         public bool Contains(string feed_uri, string id)
         {
-            DetailedInfo dummy;
-            return TryGetSummary(feed_uri, id, out dummy);
+            return Contains(Tuple.Create(feed_uri, id));
         }
 
         public bool Contains(Tuple<string, string> key)
         {
-            DetailedInfo dummy;
-            return TryGetSummary(key, out dummy);
+            TaggedItem dummy;
+            return tagged_items.TryGetValue(key, out dummy);
         }
 
         public IEnumerable<DetailedInfo> Intersect(IEnumerable<Tuple<string, string>> keys)

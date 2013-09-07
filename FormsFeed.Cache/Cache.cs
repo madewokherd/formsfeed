@@ -329,7 +329,7 @@ namespace FormsFeed
                 {
                     // HACK
                     if (itemnode.NodeType == HtmlNodeType.Text)
-                        item_info.contents.Add(Tuple.Create("content-uri", HtmlEntity.DeEntitize(itemnode.OuterHtml)));
+                        item_info.contents.Add(Tuple.Create("content-uri", HtmlEntity.DeEntitize(itemnode.InnerHtml.Trim())));
                     else if (itemnode.NodeType == HtmlNodeType.Comment && itemnode.OuterHtml.StartsWith("<![CDATA[") && itemnode.OuterHtml.EndsWith("]]>"))
                         item_info.contents.Add(Tuple.Create("content-uri", itemnode.OuterHtml.Substring(9, itemnode.OuterHtml.Length - 12)));
                     in_link = false;
@@ -557,7 +557,9 @@ namespace FormsFeed
                             {
                                 // HACK
                                 if (channelnode.NodeType == HtmlNodeType.Text)
-                                    feed_detailed_info.contents.Add(Tuple.Create("content-uri", HtmlEntity.DeEntitize(channelnode.OuterHtml)));
+                                    feed_detailed_info.contents.Add(Tuple.Create("content-uri", HtmlEntity.DeEntitize(channelnode.InnerHtml.Trim())));
+                                else if (channelnode.NodeType == HtmlNodeType.Comment && channelnode.OuterHtml.StartsWith("<![CDATA[") && channelnode.OuterHtml.EndsWith("]]>"))
+                                    feed_detailed_info.contents.Add(Tuple.Create("content-uri", channelnode.OuterHtml.Substring(9, channelnode.OuterHtml.Length - 12)));
                                 in_link = false;
                             }
                             if (channelnode.Name == "item")
@@ -636,7 +638,9 @@ namespace FormsFeed
                                 {
                                     // HACK
                                     if (channelnode.NodeType == HtmlNodeType.Text)
-                                        feed_detailed_info.contents.Add(Tuple.Create("content-uri", HtmlEntity.DeEntitize(channelnode.OuterHtml)));
+                                        feed_detailed_info.contents.Add(Tuple.Create("content-uri", HtmlEntity.DeEntitize(channelnode.OuterHtml.Trim())));
+                                    else if (channelnode.NodeType == HtmlNodeType.Comment && channelnode.OuterHtml.StartsWith("<![CDATA[") && channelnode.OuterHtml.EndsWith("]]>"))
+                                        feed_detailed_info.contents.Add(Tuple.Create("content-uri", channelnode.OuterHtml.Substring(9, channelnode.OuterHtml.Length - 12)));
                                     in_link = false;
                                 }
                                 if (channelnode.Name == "title")
@@ -897,7 +901,7 @@ namespace FormsFeed
             foreach (var subnode in node.ChildNodes)
             {
                 if (subnode.NodeType == HtmlNodeType.Text)
-                    result = result + HtmlEntity.DeEntitize(subnode.InnerText).Trim();
+                    result = result + HtmlEntity.DeEntitize(subnode.InnerText.Trim());
                 else if (subnode.NodeType == HtmlNodeType.Element)
                     result = result + subnode.OuterHtml;
                 else if (subnode.NodeType == HtmlNodeType.Comment && subnode.OuterHtml.StartsWith("<![CDATA[") && subnode.OuterHtml.EndsWith("]]>"))

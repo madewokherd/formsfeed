@@ -315,11 +315,12 @@ namespace FormsFeed
             return true;
         }
 
-        private static void ParseXmlSyndication(ref FeedBasicInfo feed, ref DetailedInfo feed_info, ref DetailedInfo item_info)
+        private static void ParseXmlSyndication(ref FeedBasicInfo feed, ref DetailedInfo feed_info, ref DetailedInfo item_info, DateTime minDate, DateTime maxDate)
         {
             HtmlNode rootnode = (HtmlNode)item_info.original_resource;
             bool in_link = false;
             DateTime updated = DateTime.MinValue;
+            DateTime published = DateTime.MinValue;
             foreach (var itemnode in rootnode.ChildNodes)
             {
                 string tagname = itemnode.Name.ToLowerInvariant();
@@ -376,9 +377,9 @@ namespace FormsFeed
                 }
                 else if (tagname == "pubdate" || tagname == "published")
                 {
-                    if (DateTime.TryParse(GetNodeTextContent(itemnode), out item_info.timestamp) ||
-                        ParseRfc822DateTime(GetNodeTextContent(itemnode), out item_info.timestamp))
-                        item_info.timestamp = item_info.timestamp.ToUniversalTime();
+                    if (DateTime.TryParse(GetNodeTextContent(itemnode), out published) ||
+                        ParseRfc822DateTime(GetNodeTextContent(itemnode), out published))
+                        published = published.ToUniversalTime();
                 }
                 else if (tagname == "guid")
                 {
@@ -405,10 +406,19 @@ namespace FormsFeed
                         item_info.contents.Add(Tuple.Create(string.Format("xml:{0}", itemnode.Name), itemnode.InnerHtml));
                 }
             }
-            if (item_info.timestamp == DateTime.MinValue && updated != DateTime.MinValue)
-            {
+            if (published != DateTime.MinValue &&
+                DateTime.Compare(minDate, published) <= 0 &&
+                DateTime.Compare(maxDate, published) >= 0)
+                item_info.timestamp = published;
+            else if (updated != DateTime.MinValue &&
+                DateTime.Compare(minDate, updated) <= 0 &&
+                DateTime.Compare(maxDate, updated) >= 0)
                 item_info.timestamp = updated;
-            }
+            else if ((published != DateTime.MinValue && DateTime.Compare(published, minDate) < 0) ||
+                (updated != DateTime.MinValue && DateTime.Compare(updated, minDate) < 0))
+                item_info.timestamp = minDate;
+            else
+                item_info.timestamp = maxDate;
             if (string.IsNullOrWhiteSpace(item_info.id))
             {
                 item_info.id = string.Format("sha1:{0}", hash_string(rootnode.OuterHtml));
@@ -418,12 +428,19 @@ namespace FormsFeed
         public bool Update(string uri, bool force)
         {
             ContentType content_type = null;
+            DateTime minDate = DateTime.MinValue;
+            DateTime maxDate;
             lock (GetFeedLock(uri))
             {
                 FeedBasicInfo info = GetBasicInfoSafe(uri);
                 if (!force && DateTime.Compare(DateTime.UtcNow, info.expiration) < 0)
                     return false;
                 DateTime previous_check = info.lastchecked;
+                if (info.lastchecked != default(DateTime) &&
+                    DateTime.Compare(info.lastchecked, info.timestamp) > 0)
+                    minDate = info.lastchecked;
+                else if (info.timestamp != default(DateTime))
+                    minDate = info.timestamp;
                 info.lastchecked = DateTime.UtcNow;
                 WebRequest request = WebRequest.Create(uri);
                 if (request is HttpWebRequest)
@@ -438,9 +455,11 @@ namespace FormsFeed
                 try
                 {
                     response = request.GetResponse();
+                    maxDate = DateTime.UtcNow;
                 }
                 catch (Exception e)
                 {
+                    maxDate = DateTime.UtcNow;
                     if (e is WebException)
                     {
                         WebResponse r = ((WebException)e).Response;
@@ -453,7 +472,11 @@ namespace FormsFeed
                             {
                                 string key = headers.GetKey(i);
                                 if (key == "Last-Modified" && DateTime.TryParse(headers.Get(i), out info.timestamp))
+                                {
                                     info.timestamp = info.timestamp.ToUniversalTime();
+                                    if (DateTime.Compare(info.timestamp, maxDate) < 0)
+                                        maxDate = info.timestamp;
+                                }
                                 else if (key == "ETag")
                                     info.etag = headers.Get(i);
                                 else if (key == "Expires" && DateTime.TryParse(headers.Get(i), out info.expiration))
@@ -466,6 +489,7 @@ namespace FormsFeed
                     Console.WriteLine(e);
                     // FIXME: Store exception
                     info.expiration = DateTime.UtcNow.AddMinutes(15);
+                    info.lastchecked = previous_check;
                     feed_infos[info.uri] = info;
                     return false;
                 }
@@ -480,7 +504,11 @@ namespace FormsFeed
                     {
                         string key = headers.GetKey(i);
                         if (key == "Last-Modified" && DateTime.TryParse(headers.Get(i), out info.timestamp))
+                        {
                             info.timestamp = info.timestamp.ToUniversalTime();
+                            if (DateTime.Compare(info.timestamp, maxDate) < 0)
+                                maxDate = info.timestamp;
+                        }
                         else if (key == "ETag")
                             info.etag = headers.Get(i);
                         else if (key == "Expires" && DateTime.TryParse(headers.Get(i), out info.expiration))
@@ -573,7 +601,7 @@ namespace FormsFeed
                                 iteminfo.feed_uri = info.uri;
                                 iteminfo.contents = new List<Tuple<string, string>>();
                                 iteminfo.original_resource = channelnode;
-                                ParseXmlSyndication(ref info, ref feed_detailed_info, ref iteminfo);
+                                ParseXmlSyndication(ref info, ref feed_detailed_info, ref iteminfo, minDate, maxDate);
                                 if (!detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)) &&
                                     !item_keys.Contains(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
                                 {
@@ -687,7 +715,7 @@ namespace FormsFeed
                             iteminfo.feed_uri = info.uri;
                             iteminfo.contents = new List<Tuple<string, string>>();
                             iteminfo.original_resource = rdfnode;
-                            ParseXmlSyndication(ref info, ref feed_detailed_info, ref iteminfo);
+                            ParseXmlSyndication(ref info, ref feed_detailed_info, ref iteminfo, minDate, maxDate);
                             if (!detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)) &&
                                 !item_keys.Contains(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
                             {
@@ -726,7 +754,7 @@ namespace FormsFeed
                             iteminfo.feed_uri = info.uri;
                             iteminfo.contents = new List<Tuple<string, string>>();
                             iteminfo.original_resource = feednode;
-                            ParseXmlSyndication(ref info, ref feed_detailed_info, ref iteminfo);
+                            ParseXmlSyndication(ref info, ref feed_detailed_info, ref iteminfo, minDate, maxDate);
                             if (!detailed_infos.ContainsKey(Tuple.Create(iteminfo.feed_uri, iteminfo.id)) &&
                                 !item_keys.Contains(Tuple.Create(iteminfo.feed_uri, iteminfo.id)))
                             {

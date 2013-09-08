@@ -247,6 +247,8 @@ namespace FormsFeed.WinForms
                     byte[] bytes = (new UTF8Encoding()).GetBytes(result);
                     f.Write(bytes, 0, bytes.Length);
                 }
+                temp_html_file_feedurl = summaryinfo.feed_uri;
+                temp_html_file_id = summaryinfo.id;
                 return temp_html_file;
             }
             return result;

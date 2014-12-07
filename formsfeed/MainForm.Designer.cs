@@ -259,7 +259,7 @@
             this.itemtoolstrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
             this.itemtoolstrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.allitemsbutton});
-            this.itemtoolstrip.Location = new System.Drawing.Point(0, 24);
+            this.itemtoolstrip.Location = new System.Drawing.Point(0, 0);
             this.itemtoolstrip.Name = "itemtoolstrip";
             this.itemtoolstrip.Size = new System.Drawing.Size(354, 25);
             this.itemtoolstrip.TabIndex = 3;
@@ -282,9 +282,9 @@
             this.ClientSize = new System.Drawing.Size(354, 339);
             this.Controls.Add(this.webbrowser);
             this.Controls.Add(this.itemsview);
-            this.Controls.Add(this.menuStrip1);
             this.Controls.Add(this.statusbar);
             this.Controls.Add(this.itemtoolstrip);
+            this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "MainForm";
             this.Text = "FormsFeed";

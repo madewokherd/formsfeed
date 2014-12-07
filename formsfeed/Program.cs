@@ -17,7 +17,13 @@ namespace FormsFeed.WinForms
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new MainForm(new Cache()));
+            using (var cache = new Cache())
+            {
+                using (var form = new MainForm(cache))
+                {
+                    Application.Run(form);
+                }
+            }
         }
     }
 }

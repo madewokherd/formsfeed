@@ -64,214 +64,215 @@ feedtest update
                 return;
             }
 
-            Cache cache = new Cache();
-
-            string command = args[0].ToLowerInvariant();
-
-            if (command == "update")
+            using (Cache cache = new Cache())
             {
-                bool force = false;
-                int i;
-                for (i = 1; i < args.Length; i++)
+                string command = args[0].ToLowerInvariant();
+
+                if (command == "update")
                 {
-                    FeedBasicInfo info;
-                    if (args[i] == "-f")
+                    bool force = false;
+                    int i;
+                    for (i = 1; i < args.Length; i++)
                     {
-                        force = true;
-                        continue;
-                    }
-                    DateTime last_update_timestamp = DateTime.MinValue;
-                    if (cache.TryGetFeedBasicInfo(args[i], out info))
-                    {
-                        last_update_timestamp = info.lastchecked;
-                    }
-                    if (cache.Update(args[i], force))
-                    {
-                        if (DateTime.Compare(info.expiration, DateTime.UtcNow) <= 0)
-                            Console.WriteLine("Updated.", info.expiration.ToLocalTime());
+                        FeedBasicInfo info;
+                        if (args[i] == "-f")
+                        {
+                            force = true;
+                            continue;
+                        }
+                        DateTime last_update_timestamp = DateTime.MinValue;
+                        if (cache.TryGetFeedBasicInfo(args[i], out info))
+                        {
+                            last_update_timestamp = info.lastchecked;
+                        }
+                        if (cache.Update(args[i], force))
+                        {
+                            if (DateTime.Compare(info.expiration, DateTime.UtcNow) <= 0)
+                                Console.WriteLine("Updated.", info.expiration.ToLocalTime());
+                            else
+                                Console.WriteLine("Updated. Will not check again until {0}", info.expiration.ToLocalTime());
+                        }
                         else
-                            Console.WriteLine("Updated. Will not check again until {0}", info.expiration.ToLocalTime());
+                        {
+                            if (DateTime.Compare(last_update_timestamp, info.timestamp) != 0)
+                                Console.WriteLine("Updated.");
+                            else
+                                Console.WriteLine("Skipped check because it is not yet {0}", info.expiration.ToLocalTime());
+                        }
+                        return;
+                    }
+                    cache.UpdateAll(force);
+                }
+                else if (command == "list-items")
+                {
+                    bool refresh = false;
+                    int i;
+                    for (i = 1; i < args.Length; i++)
+                    {
+                        if (args[i] == "-r")
+                        {
+                            refresh = true;
+                            continue;
+                        }
+                        if (refresh)
+                            cache.Update(args[i]);
+                        foreach (var item in cache.GetFeedItems(args[i]))
+                        {
+                            Console.WriteLine("{0} {1}", item.id, item.title);
+                        }
+                        return;
+                    }
+                    // No uri specified.
+                    Usage();
+                }
+                else if (command == "show-item")
+                {
+                    string uri, id;
+
+                    if (args.Length == 1)
+                    {
+                        Usage();
+                        return;
+                    }
+
+                    DetailedInfo info;
+
+                    uri = args[1];
+                    if (args.Length >= 3)
+                        id = args[2];
+                    else
+                        id = "";
+
+                    if (cache.TryGetDetailedInfo(uri, id, out info))
+                    {
+                        WriteDetailedInfo(info);
                     }
                     else
                     {
-                        if (DateTime.Compare(last_update_timestamp, info.timestamp) != 0)
-                            Console.WriteLine("Updated.");
-                        else
-                            Console.WriteLine("Skipped check because it is not yet {0}", info.expiration.ToLocalTime());
+                        Console.WriteLine("No such item");
                     }
-                    return;
                 }
-                cache.UpdateAll(force);
-            }
-            else if (command == "list-items")
-            {
-                bool refresh = false;
-                int i;
-                for (i = 1; i < args.Length; i++)
+                else if (command == "tag-item")
                 {
-                    if (args[i] == "-r")
+                    string tagname, uri, id;
+
+                    if (args.Length != 4)
                     {
-                        refresh = true;
-                        continue;
+                        Usage();
+                        return;
                     }
-                    if (refresh)
-                        cache.Update(args[i]);
-                    foreach (var item in cache.GetFeedItems(args[i]))
+
+                    tagname = args[1];
+                    uri = args[2];
+                    id = args[3];
+
+                    Tag tag = cache.GetTag(tagname);
+
+                    DetailedInfo info;
+
+                    if (cache.TryGetDetailedInfo(uri, id, out info))
                     {
-                        Console.WriteLine("{0} {1}", item.id, item.title);
+                        tag.Add(info);
                     }
-                    return;
+                    else
+                    {
+                        Console.WriteLine("No such item");
+                    }
                 }
-                // No uri specified.
-                Usage();
-            }
-            else if (command == "show-item")
-            {
-                string uri, id;
-
-                if (args.Length == 1)
+                else if (command == "untag-item")
                 {
-                    Usage();
-                    return;
+                    string tagname, uri, id;
+
+                    if (args.Length != 4)
+                    {
+                        Usage();
+                        return;
+                    }
+
+                    tagname = args[1];
+                    uri = args[2];
+                    id = args[3];
+
+                    Tag tag = cache.GetTag(tagname);
+
+                    if (!tag.Remove(Tuple.Create(uri, id)))
+                    {
+                        Console.WriteLine("No such item in tag");
+                    }
                 }
+                else if (command == "show-tag")
+                {
+                    string tagname;
 
-                DetailedInfo info;
+                    if (args.Length != 2)
+                    {
+                        Usage();
+                        return;
+                    }
 
-                uri = args[1];
-                if (args.Length >= 3)
-                    id = args[2];
+                    tagname = args[1];
+
+                    Tag tag = cache.GetTag(tagname);
+
+                    foreach (var info in tag.GetSummaries())
+                    {
+                        Console.WriteLine("Feed url: {0}", info.feed_uri);
+                        Console.WriteLine("Id: {0}", info.id);
+                        WriteDetailedInfo(info);
+                    }
+                }
+                else if (command == "subscribe")
+                {
+                    string feed_uri;
+
+                    if (args.Length != 2)
+                    {
+                        Usage();
+                        return;
+                    }
+
+                    feed_uri = args[1];
+
+                    cache.Subscribe(feed_uri);
+                }
+                else if (command == "unsubscribe")
+                {
+                    string feed_uri;
+
+                    if (args.Length != 2)
+                    {
+                        Usage();
+                        return;
+                    }
+
+                    feed_uri = args[1];
+
+                    cache.SetSubscribed(feed_uri, false);
+                }
+                else if (command == "import-opml")
+                {
+                    string filename;
+
+                    if (args.Length != 2)
+                    {
+                        Usage();
+                        return;
+                    }
+
+                    filename = args[1];
+
+                    cache.ImportOpml(filename);
+                }
+                else if (command == "list-subscriptions")
+                {
+                    foreach (string uri in cache.GetSubscriptions())
+                    {
+                        Console.WriteLine(uri);
+                    }
+                }
                 else
-                    id = "";
-
-                if (cache.TryGetDetailedInfo(uri, id, out info))
-                {
-                    WriteDetailedInfo(info);
-                }
-                else
-                {
-                    Console.WriteLine("No such item");
-                }
-            }
-            else if (command == "tag-item")
-            {
-                string tagname, uri, id;
-
-                if (args.Length != 4)
-                {
                     Usage();
-                    return;
-                }
-
-                tagname = args[1];
-                uri = args[2];
-                id = args[3];
-
-                Tag tag = cache.GetTag(tagname);
-
-                DetailedInfo info;
-
-                if (cache.TryGetDetailedInfo(uri, id, out info))
-                {
-                    tag.Add(info);
-                }
-                else
-                {
-                    Console.WriteLine("No such item");
-                }
             }
-            else if (command == "untag-item")
-            {
-                string tagname, uri, id;
-
-                if (args.Length != 4)
-                {
-                    Usage();
-                    return;
-                }
-
-                tagname = args[1];
-                uri = args[2];
-                id = args[3];
-
-                Tag tag = cache.GetTag(tagname);
-
-                if (!tag.Remove(Tuple.Create(uri, id)))
-                {
-                    Console.WriteLine("No such item in tag");
-                }
-            }
-            else if (command == "show-tag")
-            {
-                string tagname;
-
-                if (args.Length != 2)
-                {
-                    Usage();
-                    return;
-                }
-
-                tagname = args[1];
-
-                Tag tag = cache.GetTag(tagname);
-
-                foreach (var info in tag.GetSummaries())
-                {
-                    Console.WriteLine("Feed url: {0}", info.feed_uri);
-                    Console.WriteLine("Id: {0}", info.id);
-                    WriteDetailedInfo(info);
-                }
-            }
-            else if (command == "subscribe")
-            {
-                string feed_uri;
-
-                if (args.Length != 2)
-                {
-                    Usage();
-                    return;
-                }
-
-                feed_uri = args[1];
-
-                cache.Subscribe(feed_uri);
-            }
-            else if (command == "unsubscribe")
-            {
-                string feed_uri;
-
-                if (args.Length != 2)
-                {
-                    Usage();
-                    return;
-                }
-
-                feed_uri = args[1];
-
-                cache.SetSubscribed(feed_uri, false);
-            }
-            else if (command == "import-opml")
-            {
-                string filename;
-
-                if (args.Length != 2)
-                {
-                    Usage();
-                    return;
-                }
-
-                filename = args[1];
-
-                cache.ImportOpml(filename);
-            }
-            else if (command == "list-subscriptions")
-            {
-                foreach (string uri in cache.GetSubscriptions())
-                {
-                    Console.WriteLine(uri);
-                }
-            }
-            else
-                Usage();
         }
     }
 }

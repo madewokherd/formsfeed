@@ -136,7 +136,7 @@
             this.tagToolStripMenuItem});
             this.itemContextMenu.Name = "contextMenuStrip1";
             this.itemContextMenu.OwnerItem = this.itemToolStripMenuItem;
-            this.itemContextMenu.Size = new System.Drawing.Size(191, 70);
+            this.itemContextMenu.Size = new System.Drawing.Size(191, 92);
             // 
             // copyLinkLocationToolStripMenuItem
             // 
@@ -166,13 +166,14 @@
             // tagListSeparator
             // 
             this.tagListSeparator.Name = "tagListSeparator";
-            this.tagListSeparator.Size = new System.Drawing.Size(124, 6);
+            this.tagListSeparator.Size = new System.Drawing.Size(149, 6);
             // 
             // newTagToolStripMenuItem
             // 
             this.newTagToolStripMenuItem.Name = "newTagToolStripMenuItem";
-            this.newTagToolStripMenuItem.Size = new System.Drawing.Size(127, 22);
+            this.newTagToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.newTagToolStripMenuItem.Text = "New tag...";
+            this.newTagToolStripMenuItem.Click += new System.EventHandler(this.newTagToolStripMenuItem_Click);
             // 
             // statusbar
             // 

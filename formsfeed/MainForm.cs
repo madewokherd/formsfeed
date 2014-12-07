@@ -372,5 +372,18 @@ namespace FormsFeed.WinForms
                     tag.Add(summaryinfo);
             }
         }
+
+        private void newTagToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            DetailedInfo summaryinfo = (DetailedInfo)itemsview.SelectedItems[0].Tag;
+            using (var dialog = new NewTagDialog(cache, new Tuple<string, string>(summaryinfo.feed_uri, summaryinfo.id)))
+            {
+                if (dialog.ShowDialog(this) == System.Windows.Forms.DialogResult.OK)
+                {
+                    var tag = cache.GetTag(dialog.tagnametext.Text);
+                    tag.Add(summaryinfo);
+                }
+            }
+        }
     }
 }

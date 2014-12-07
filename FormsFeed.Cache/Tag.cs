@@ -61,6 +61,24 @@ namespace FormsFeed
             ks.parent = this;
         }
 
+        public static bool IsValidName(Cache cache, string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return false;
+            if (name.Contains(Path.DirectorySeparatorChar.ToString()) || name.Contains(Path.AltDirectorySeparatorChar.ToString()))
+                return false;
+            try
+            {
+                // Throws exception if filename is invalid.
+                Path.Combine(cache.basepath, name + ".tag");
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+            return true;
+        }
+
         internal void Load()
         {
             if (!loaded)

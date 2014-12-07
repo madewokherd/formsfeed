@@ -425,6 +425,19 @@ namespace FormsFeed
             }
         }
 
+        private void CreateErrorItem(string feed_uri, Exception e)
+        {
+            DetailedInfo error_item_info = new DetailedInfo();
+            error_item_info.feed_uri = feed_uri;
+            error_item_info.contents = new List<Tuple<string, string>>();
+            error_item_info.timestamp = DateTime.UtcNow;
+            error_item_info.id = "ERROR";
+            error_item_info.title = string.Format("Error fetching {0}", feed_uri);
+            error_item_info.contents.Add(new Tuple<string, string>("description", string.Format("Error fetching {0}<br/>{1}", feed_uri, text_to_html(e.ToString()))));
+            detailed_infos[Tuple.Create(error_item_info.feed_uri, error_item_info.id)] = error_item_info;
+            GetTag("(unread)").Add(error_item_info);
+        }
+
         public bool Update(string uri, bool force)
         {
             ContentType content_type = null;
@@ -487,8 +500,9 @@ namespace FormsFeed
                         }
                     }
                     Console.WriteLine(e);
-                    // FIXME: Store exception
-                    info.expiration = DateTime.UtcNow.AddMinutes(15);
+
+                    CreateErrorItem(info.uri, e);
+
                     info.lastchecked = previous_check;
                     feed_infos[info.uri] = info;
                     return false;
@@ -1045,6 +1059,7 @@ namespace FormsFeed
                     {
                         Console.WriteLine(feed_uri);
                         Console.WriteLine(e);
+                        CreateErrorItem(feed_uri, e);
                     }
                 }
                 cb(subs.Count);

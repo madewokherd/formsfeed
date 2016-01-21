@@ -208,7 +208,7 @@ namespace FormsFeed.WinForms
             string content_uri = info.get_content_uri();
             if (content_uri != null)
             {
-                result = content_uri;
+                result = new Uri(new Uri(summaryinfo.feed_uri, UriKind.Absolute), content_uri).ToString();
                 return false;
             }
             string content_html = info.get_content_html();

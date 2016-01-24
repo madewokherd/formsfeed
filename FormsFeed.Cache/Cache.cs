@@ -463,6 +463,7 @@ namespace FormsFeed
                         (request as HttpWebRequest).IfModifiedSince = info.timestamp;
                     if (info.etag != null && info.etag != "")
                         headers.Add("If-None-Match", info.etag);
+                    (request as HttpWebRequest).UserAgent = "formsfeed";
                 }
                 WebResponse response;
                 try

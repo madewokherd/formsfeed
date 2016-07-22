@@ -327,6 +327,8 @@ namespace FormsFeed.WinForms
         private void itemsview_ItemSelectionChanged(object sender, ListViewItemSelectionChangedEventArgs e)
         {
             itemToolStripMenuItem.Enabled = itemsview.SelectedItems.Count != 0;
+            copyLinkLocationToolStripMenuItem.Enabled = itemsview.SelectedItems.Count == 1;
+            openInNewWindowToolStripMenuItem.Enabled = itemsview.SelectedItems.Count == 1;
         }
 
         private void itemsview_MouseClick(object sender, MouseEventArgs e)
@@ -359,17 +361,24 @@ namespace FormsFeed.WinForms
             }
         }
 
+        private IEnumerable<DetailedInfo> get_selected_items()
+        {
+            foreach (ListViewItem item in itemsview.SelectedItems)
+            {
+                yield return (DetailedInfo)item.Tag;
+            }
+        }
+
         private void tagToolStripMenuItem_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
             if (e.ClickedItem.Tag is string)
             {
-                DetailedInfo summaryinfo = (DetailedInfo)itemsview.SelectedItems[0].Tag;
                 ToolStripMenuItem tsmi = (ToolStripMenuItem)e.ClickedItem;
                 Tag tag = cache.GetTag((string)tsmi.Tag);
                 if (tsmi.Checked)
-                    tag.Remove(summaryinfo);
+                    tag.Remove(get_selected_items());
                 else
-                    tag.Add(summaryinfo);
+                    tag.Add(get_selected_items());
             }
         }
 
@@ -381,7 +390,7 @@ namespace FormsFeed.WinForms
                 if (dialog.ShowDialog(this) == System.Windows.Forms.DialogResult.OK)
                 {
                     var tag = cache.GetTag(dialog.tagnametext.Text);
-                    tag.Add(summaryinfo);
+                    tag.Add(get_selected_items());
                 }
             }
         }

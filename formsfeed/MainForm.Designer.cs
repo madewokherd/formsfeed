@@ -212,7 +212,6 @@
             this.itemsview.LabelWrap = false;
             this.itemsview.Location = new System.Drawing.Point(0, 24);
             this.itemsview.Margin = new System.Windows.Forms.Padding(0);
-            this.itemsview.MultiSelect = false;
             this.itemsview.Name = "itemsview";
             this.itemsview.ShowItemToolTips = true;
             this.itemsview.Size = new System.Drawing.Size(354, 315);
